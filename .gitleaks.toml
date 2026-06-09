@@ -1,0 +1,13 @@
+title = "Axonote gitleaks config"
+
+[[allowlists]]
+description = "Allow documented placeholder values in committed examples."
+paths = [
+  '''^\.env\.example$''',
+]
+regexTarget = "line"
+regexes = [
+  '''JWT_SECRET=change-me-in-production''',
+  '''MYSQL_PASSWORD=''',
+  '''DATABASE_URL=mysql\+pymysql://root:@localhost:3306/axonote''',
+]
