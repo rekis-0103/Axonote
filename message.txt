@@ -1,0 +1,114 @@
+## Summary
+
+  Axonote dibuat sebagai monorepo maintainable untuk aplikasi rangkuman materi dan latihan soal berbasis ML/NLP
+  klasik. MVP mendukung upload PDF, DOCX, PPTX, analisis materi bahasa Inggris, ringkasan ekstraktif, dan soal pilihan
+  ganda.
+
+  Struktur satu repo:
+
+  - apps/web untuk Next.js
+  - apps/api untuk FastAPI
+  - apps/worker untuk proses analisis materi
+  - packages/shared untuk kontrak API/type/schema bersama jika dibutuhkan
+  - infra untuk Docker Compose, MySQL, deployment config
+  - docs untuk rancangan, API contract, security policy, dan kontribusi
+  - .github/workflows untuk CI/CD
+
+  ## Tech Stack
+
+  - Frontend: Next.js App Router, TypeScript, Tailwind CSS, shadcn/ui, TanStack Query, React Hook Form + Zod.
+  - Backend: Python FastAPI, Pydantic, SQLAlchemy, Alembic, JWT auth, pytest.
+  - ML/NLP: scikit-learn, networkx/TextRank, parser pypdf/PyMuPDF, python-docx, python-pptx.
+  - Database: MySQL 8.x, local dev pakai user root dan password kosong jika maksud password - adalah tidak ada
+    password.
+
+  - Background job: worker Python membaca job dari database; Celery/Redis bisa ditambahkan nanti.
+  - Collaboration: GitHub branch protection, pull request review, CI wajib hijau sebelum merge.
+
+  ## Key Features
+
+  - Auth user: register, login, logout, profile.
+  - Dashboard materi: daftar upload, status analisis, ringkasan, dan riwayat quiz.
+  - Upload materi: validasi file, simpan metadata, dan buat analysis job.
+  - Analisis materi: ekstraksi teks, chunking, keyword extraction, sentence ranking, summary generation.
+  - Latihan soal: pilihan ganda dari kalimat penting, keyword, dan distractor dari istilah terkait dalam materi.
+  - Quiz attempt: simpan jawaban user, skor, pembahasan dasar, dan histori pengerjaan.
+
+  ## Cybersecurity Design
+
+  - Authentication:
+      - Password di-hash dengan argon2 atau bcrypt, tidak pernah disimpan plain text.
+      - Login memakai access token JWT pendek umur dan refresh token yang bisa dicabut.
+      - Endpoint sensitif wajib membutuhkan user session valid.
+
+  - Authorization:
+      - Setiap materi, summary, question set, dan quiz attempt terikat ke user_id.
+      - Backend wajib mengecek ownership di setiap endpoint, bukan hanya menyembunyikan data dari frontend.
+      - Role awal: user dan admin; admin hanya untuk monitoring dan moderasi internal.
+
+  - Upload security:
+      - Batasi ekstensi file ke pdf, docx, pptx.
+      - Batasi ukuran file, misalnya 20 MB per upload untuk MVP.
+      - Validasi MIME type dan magic bytes, bukan hanya nama file.
+      - Simpan file dengan nama acak, bukan nama asli dari user.
+      - Jangan eksekusi macro atau embedded script dari dokumen.
+      - Ekstraksi teks dijalankan di worker terpisah agar API utama tetap aman dan stabil.
+
+  - API security:
+      - Validasi semua request dengan Pydantic/Zod.
+      - Rate limit endpoint login, register, upload, dan generate soal.
+      - CORS hanya mengizinkan domain frontend resmi.
+      - Gunakan HTTPS di production.
+      - Error response tidak membocorkan stack trace, path server, query SQL, atau secret.
+
+  - Database security:
+      - Query memakai SQLAlchemy parameter binding untuk mencegah SQL injection.
+      - User database production tidak boleh pakai root.
+      - .env dipakai untuk credential; .env tidak masuk Git.
+      - Migration memakai Alembic agar perubahan schema bisa diaudit.
+
+  - Frontend security:
+      - Hindari render HTML mentah dari hasil materi user.
+      - Summary dan soal ditampilkan sebagai escaped text.
+      - Cookie/token dikonfigurasi dengan HttpOnly, Secure, dan SameSite jika memakai cookie auth.
+      - Tambahkan Content Security Policy dasar di production.
+
+  - DevSecOps:
+      - .gitignore wajib menolak .env, upload folder, cache, dan file credential.
+      - GitHub Actions menjalankan lint, test, build, dependency audit, dan secret scanning.
+      - Dependabot diaktifkan untuk update dependency.
+      - Tambahkan SECURITY.md untuk aturan pelaporan celah keamanan.
+      - Pull request wajib review minimal 1 orang sebelum merge ke main.
+
+  ## Public API
+
+  - POST /api/v1/auth/register
+  - POST /api/v1/auth/login
+  - POST /api/v1/auth/logout
+  - GET /api/v1/auth/me
+  - POST /api/v1/materials
+  - GET /api/v1/materials
+  - GET /api/v1/materials/{id}
+  - POST /api/v1/materials/{id}/analyze
+  - GET /api/v1/jobs/{id}
+  - GET /api/v1/materials/{id}/summary
+  - POST /api/v1/question-sets/{id}/attempts
+
+  ## Test Plan
+
+  - Unit test parser file, preprocessing English, summary ranking, question generation, dan scoring.
+  - API test auth, upload validation, ownership check, job status, summary, dan quiz attempt.
+  - Security test dasar untuk unauthorized access, invalid token, akses materi user lain, file type palsu, ukuran file
+    berlebih, dan rate limit.
+
+  - Frontend test untuk upload form, dashboard state, detail materi, dan quiz flow.
+  - CI test di GitHub untuk frontend build, backend test, migration check, dependency audit, dan secret scan.
+
+  ## Assumptions
+
+  - Tetap satu repository GitHub dengan struktur monorepo.
+  - MVP tidak memakai LLM dan tidak memakai local model besar.
+  - Bahasa analisis awal adalah Inggris.
+  - Soal awal hanya pilihan ganda, tetapi schema dibuat agar tipe soal lain bisa ditambah nanti.
+  - Untuk development lokal boleh memakai MySQL root password kosong, tetapi production wajib memakai user database
+    khusus dengan privilege terbatas.

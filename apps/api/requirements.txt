@@ -1,0 +1,13 @@
+# Unpinned lower bounds so prebuilt wheels are selected on the local Python
+# (Python 3.14 needs recent pydantic-core / no source build). Pin exact versions
+# once the team standardizes a Python version (Docker uses 3.12).
+fastapi>=0.115
+uvicorn>=0.34
+pydantic>=2.11
+pydantic-settings>=2.7
+python-dotenv>=1.0
+
+# dev / test
+pytest>=8.3
+httpx>=0.28
+ruff>=0.8
