@@ -7,8 +7,14 @@ from sqlalchemy.orm import Session
 
 from app.db import get_db
 from app.models import User
-from app.schemas import TokenResponse, UserCreate, UserLogin, UserRead
-from app.security import create_access_token, hash_password, verify_access_token, verify_password
+from app.schemas import GoogleLoginRequest, TokenResponse, UserCreate, UserLogin, UserRead
+from app.security import (
+    create_access_token,
+    hash_password,
+    verify_access_token,
+    verify_google_id_token,
+    verify_password,
+)
 
 router = APIRouter(prefix="/api/v1/auth", tags=["auth"])
 bearer_scheme = HTTPBearer(auto_error=False)
@@ -52,6 +58,7 @@ def register(payload: UserCreate, db: DbSession) -> TokenResponse:
         display_name=payload.name.strip(),
         email=payload.email,
         password_hash=hash_password(payload.password),
+        auth_provider="local",
     )
     db.add(user)
     db.commit()
@@ -68,6 +75,37 @@ def login(payload: UserLogin, db: DbSession) -> TokenResponse:
             detail="Invalid email or password.",
             headers={"WWW-Authenticate": "Bearer"},
         )
+    return TokenResponse(access_token=create_access_token(str(user.id)), user=_user_read(user))
+
+
+@router.post("/google", response_model=TokenResponse)
+def google_login(payload: GoogleLoginRequest, db: DbSession) -> TokenResponse:
+    claims = verify_google_id_token(payload.credential)
+
+    user = db.scalar(select(User).where(User.google_sub == claims["sub"]))
+    if user is None:
+        user = db.scalar(select(User).where(User.email == claims["email"]))
+        if user is not None:
+            if user.google_sub and user.google_sub != claims["sub"]:
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail="Email is already linked to another Google account.",
+                )
+            user.google_sub = claims["sub"]
+            if not user.display_name:
+                user.display_name = claims["name"]
+        else:
+            user = User(
+                display_name=claims["name"],
+                email=claims["email"],
+                password_hash=None,
+                auth_provider="google",
+                google_sub=claims["sub"],
+            )
+            db.add(user)
+
+    db.commit()
+    db.refresh(user)
     return TokenResponse(access_token=create_access_token(str(user.id)), user=_user_read(user))
 
 

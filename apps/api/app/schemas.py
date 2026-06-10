@@ -31,6 +31,10 @@ class UserRead(BaseModel):
     email: str
 
 
+class GoogleLoginRequest(BaseModel):
+    credential: str = Field(min_length=10)
+
+
 class TokenResponse(BaseModel):
     access_token: str
     token_type: str = "bearer"

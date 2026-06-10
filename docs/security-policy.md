@@ -7,6 +7,7 @@ Operational/engineering security design. For vulnerability reporting see [`../SE
 - Passwords hashed with **Argon2** (preferred) or bcrypt. Never stored or logged in plaintext.
 - **Access token**: short-lived JWT (default 15 min).
 - **Refresh token**: longer-lived, stored hashed, **revocable** (logout + rotation on each refresh).
+- **Google Sign-In**: frontend sends a Google ID token; backend verifies signature (JWKS), audience (`GOOGLE_CLIENT_ID`), issuer, expiry, and `email_verified` before issuing an Axonote JWT. Raw tokens and PII are never logged. Failed verification returns a generic `401`. Linking by email is allowed only when Google has verified the email.
 - All sensitive endpoints require a valid access token.
 
 ## Authorization

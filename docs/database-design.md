@@ -22,8 +22,10 @@ users ──1:N── materials ──1:1── summaries
 | -------------- | ---------------- | ------------------------------ |
 | id             | BIGINT PK AI     |                                |
 | email          | VARCHAR(255)     | UNIQUE, not null               |
-| password_hash  | VARCHAR(255)     | Argon2/bcrypt                  |
+| password_hash  | VARCHAR(255)     | nullable; null for Google-only users |
 | display_name   | VARCHAR(120)     |                                |
+| auth_provider  | VARCHAR(20)      | `local` or `google`, default `local` |
+| google_sub     | VARCHAR(255)     | UNIQUE, nullable; Google subject id |
 | role           | ENUM('user','admin') | default 'user'             |
 | created_at     | DATETIME         |                                |
 | updated_at     | DATETIME         |                                |

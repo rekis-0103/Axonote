@@ -22,6 +22,12 @@ Req: `{ "email": string, "password": string }`
 Res `200`: `{ "access_token": string, "refresh_token": string, "token_type": "bearer" }`
 Rate-limited.
 
+### POST /auth/google
+Req: `{ "credential": string }` — Google Identity Services ID token from the frontend.
+Res `200`: `{ "access_token": string, "token_type": "bearer", "user": { "id", "name", "email" } }`
+Server verifies audience, issuer, expiry, and `email_verified` before issuing an Axonote JWT.
+Rate-limited.
+
 ### POST /auth/refresh
 Req: `{ "refresh_token": string }`
 Res `200`: `{ "access_token", "refresh_token" }` (rotates refresh token)
