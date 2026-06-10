@@ -118,8 +118,6 @@ def verify_google_id_token(credential: str) -> dict[str, str]:
             clock_skew_in_seconds=settings.google_clock_skew_seconds,
         )
     except ValueError as exc:
-        # TODO: remove debug logging once Google login is confirmed working.
-        print(f"[google-auth-debug] verify failed: {exc}")
         raise credentials_error from exc
 
     issuer = idinfo.get("iss")
