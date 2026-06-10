@@ -49,3 +49,6 @@ Thumbs.db
 # ---- Docker / data ----
 infra/mysql/data/
 *.log
+
+# ---- AGENT WORK ----
+AGENTS.md
