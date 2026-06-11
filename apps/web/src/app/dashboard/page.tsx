@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 
 const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000/api/v1";
 
@@ -11,20 +11,21 @@ type AuthUser = {
 };
 
 type MaterialItem = {
+  id: number;
   title: string;
-  type: string;
+  original_name: string;
+  mime_type: string;
+  size_bytes: number;
   status: string;
-  updatedAt: string;
+  error_message: string | null;
+  created_at: string;
+  updated_at: string;
 };
 
-const recentMaterials: MaterialItem[] = [
-  {
-    title: "No material uploaded yet",
-    type: "PDF, DOCX, PPTX",
-    status: "Waiting for upload",
-    updatedAt: "Start from the upload area",
-  },
-];
+type MaterialListResponse = {
+  items: MaterialItem[];
+  total: number;
+};
 
 const nextSteps = [
   ["Upload material", "Add lecture notes, slides, or reading material."],
@@ -32,9 +33,41 @@ const nextSteps = [
   ["Create practice", "Build multiple-choice questions from the summary."],
 ];
 
+function formatBytes(bytes: number) {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+function formatDate(value: string) {
+  return new Intl.DateTimeFormat("en", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  }).format(new Date(value));
+}
+
 export default function DashboardPage() {
   const [user, setUser] = useState<AuthUser | null>(null);
+  const [materials, setMaterials] = useState<MaterialItem[]>([]);
   const [status, setStatus] = useState("Checking session...");
+  const [uploadStatus, setUploadStatus] = useState("");
+  const [title, setTitle] = useState("");
+  const [file, setFile] = useState<File | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+
+  async function loadMaterials(token: string) {
+    const response = await fetch(`${apiBaseUrl}/materials`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.detail ?? "Unable to load materials.");
+    }
+
+    setMaterials((data as MaterialListResponse).items);
+  }
 
   useEffect(() => {
     const token = window.localStorage.getItem("axonote_token");
@@ -42,11 +75,12 @@ export default function DashboardPage() {
       window.location.href = "/";
       return;
     }
+    const authToken = token;
 
-    async function loadUser() {
+    async function loadWorkspace() {
       try {
         const response = await fetch(`${apiBaseUrl}/auth/me`, {
-          headers: { Authorization: `Bearer ${token}` },
+          headers: { Authorization: `Bearer ${authToken}` },
         });
         const data = await response.json();
 
@@ -57,14 +91,60 @@ export default function DashboardPage() {
         }
 
         setUser(data as AuthUser);
+        await loadMaterials(authToken);
         setStatus("Workspace ready");
       } catch {
         setStatus("Cannot reach the API. Make sure the backend is running.");
       }
     }
 
-    loadUser();
+    loadWorkspace();
   }, []);
+
+  async function uploadMaterial(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const token = window.localStorage.getItem("axonote_token");
+
+    if (!token) {
+      window.location.href = "/";
+      return;
+    }
+
+    if (!file) {
+      setUploadStatus("Choose a PDF, DOCX, or PPTX file first.");
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append("file", file);
+    if (title.trim()) formData.append("title", title.trim());
+
+    setIsUploading(true);
+    setUploadStatus("Uploading material...");
+
+    try {
+      const response = await fetch(`${apiBaseUrl}/materials`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+        body: formData,
+      });
+      const data = await response.json();
+
+      if (!response.ok) {
+        setUploadStatus(data.detail ?? "Upload failed.");
+        return;
+      }
+
+      setTitle("");
+      setFile(null);
+      setUploadStatus("Material uploaded.");
+      await loadMaterials(token);
+    } catch {
+      setUploadStatus("Cannot reach the API. Make sure the backend is running.");
+    } finally {
+      setIsUploading(false);
+    }
+  }
 
   function logout() {
     window.localStorage.removeItem("axonote_token");
@@ -110,24 +190,17 @@ export default function DashboardPage() {
                 Welcome back{user ? `, ${user.name}` : ""}.
               </h1>
               <p className="mt-4 max-w-2xl text-base leading-7 text-[#5f5a51]">
-                This workspace will hold uploaded material, generated summaries, and practice
-                results. The layout is ready for the upload and analysis flow.
+                Upload study material here. Axonote will keep it in your workspace so the next
+                step can generate summaries and practice questions from the file.
               </p>
             </div>
-
-            <button
-              type="button"
-              className="w-full rounded-md bg-[#263e2f] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#1d3024] sm:w-auto"
-            >
-              Upload material
-            </button>
           </div>
 
           <div className="mt-8 grid gap-4 md:grid-cols-3">
             {[
-              ["Materials", "0", "Uploaded files"],
-              ["Summaries", "0", "Generated notes"],
-              ["Quiz attempts", "0", "Practice history"],
+              ["Materials", String(materials.length), "Uploaded files"],
+              ["Pending", String(materials.filter((item) => item.status === "pending").length), "Awaiting analysis"],
+              ["Ready", String(materials.filter((item) => item.status === "ready").length), "Completed materials"],
             ].map(([label, value, caption]) => (
               <section key={label} className="rounded-lg border border-[#ddd7ca] bg-[#fffdf8] p-5">
                 <p className="text-sm font-medium text-[#777064]">{label}</p>
@@ -147,43 +220,106 @@ export default function DashboardPage() {
               </div>
 
               <div className="mt-4 space-y-3">
-                {recentMaterials.map((item) => (
-                  <div
-                    key={item.title}
-                    className="grid gap-3 rounded-md border border-[#eee8dc] bg-[#fdfaf3] p-4 sm:grid-cols-[1fr_auto]"
-                  >
-                    <div>
-                      <p className="font-medium text-[#1f241f]">{item.title}</p>
-                      <p className="mt-1 text-sm text-[#777064]">{item.type}</p>
-                    </div>
-                    <div className="text-left sm:text-right">
-                      <p className="text-sm font-medium text-[#526b55]">{item.status}</p>
-                      <p className="mt-1 text-xs text-[#8a8276]">{item.updatedAt}</p>
-                    </div>
+                {materials.length === 0 ? (
+                  <div className="rounded-md border border-dashed border-[#d5cdbc] bg-[#fdfaf3] p-6 text-sm text-[#777064]">
+                    No material uploaded yet. Use the upload panel to add your first file.
                   </div>
-                ))}
+                ) : (
+                  materials.map((item) => (
+                    <div
+                      key={item.id}
+                      className="grid gap-3 rounded-md border border-[#eee8dc] bg-[#fdfaf3] p-4 sm:grid-cols-[1fr_auto]"
+                    >
+                      <div>
+                        <p className="font-medium text-[#1f241f]">{item.title}</p>
+                        <p className="mt-1 text-sm text-[#777064]">
+                          {item.original_name} · {formatBytes(item.size_bytes)}
+                        </p>
+                        <a
+                          href={`/materials/${item.id}`}
+                          className="mt-3 inline-flex text-sm font-semibold text-[#263e2f] underline-offset-4 hover:underline"
+                        >
+                          Open material
+                        </a>
+                      </div>
+                      <div className="text-left sm:text-right">
+                        <p className="text-sm font-medium capitalize text-[#526b55]">
+                          {item.status}
+                        </p>
+                        <p className="mt-1 text-xs text-[#8a8276]">
+                          Uploaded {formatDate(item.created_at)}
+                        </p>
+                      </div>
+                    </div>
+                  ))
+                )}
               </div>
             </section>
 
-            <aside className="rounded-lg border border-[#ddd7ca] bg-[#fffdf8] p-5">
-              <h2 className="text-lg font-semibold text-[#172017]">Next workflow</h2>
-              <p className="mt-1 text-sm leading-6 text-[#777064]">
-                The dashboard is prepared around the core Axonote process.
-              </p>
+            <aside className="space-y-6">
+              <section className="rounded-lg border border-[#ddd7ca] bg-[#fffdf8] p-5">
+                <h2 className="text-lg font-semibold text-[#172017]">Upload material</h2>
+                <p className="mt-1 text-sm leading-6 text-[#777064]">
+                  Supported files: PDF, DOCX, and PPTX up to 20 MB.
+                </p>
 
-              <div className="mt-5 space-y-4">
-                {nextSteps.map(([title, description], index) => (
-                  <div key={title} className="flex gap-3">
-                    <div className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-[#e6ecdf] text-xs font-semibold text-[#263e2f]">
-                      {index + 1}
+                <form className="mt-5 space-y-4" onSubmit={uploadMaterial}>
+                  <label className="block text-sm font-medium text-[#2f342f]">
+                    Title
+                    <input
+                      value={title}
+                      onChange={(event) => setTitle(event.target.value)}
+                      className="mt-2 w-full rounded-md border border-[#cfc7b8] bg-white px-3 py-2.5 text-sm outline-none transition placeholder:text-[#aaa39a] focus:border-[#526b55] focus:ring-3 focus:ring-[#526b55]/15"
+                      placeholder="Optional title"
+                    />
+                  </label>
+
+                  <label className="block text-sm font-medium text-[#2f342f]">
+                    File
+                    <input
+                      type="file"
+                      accept=".pdf,.docx,.pptx"
+                      onChange={(event) => setFile(event.target.files?.[0] ?? null)}
+                      className="mt-2 w-full rounded-md border border-[#cfc7b8] bg-white px-3 py-2 text-sm file:mr-3 file:rounded file:border-0 file:bg-[#e6ecdf] file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-[#263e2f]"
+                    />
+                  </label>
+
+                  <button
+                    type="submit"
+                    disabled={isUploading}
+                    className="w-full rounded-md bg-[#263e2f] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#1d3024] disabled:cursor-not-allowed disabled:bg-[#a8a397]"
+                  >
+                    {isUploading ? "Uploading..." : "Upload material"}
+                  </button>
+                </form>
+
+                {uploadStatus ? (
+                  <p className="mt-4 rounded-md border border-[#e2dccf] bg-[#f6f1e8] px-3 py-2 text-sm text-[#5f5a51]">
+                    {uploadStatus}
+                  </p>
+                ) : null}
+              </section>
+
+              <section className="rounded-lg border border-[#ddd7ca] bg-[#fffdf8] p-5">
+                <h2 className="text-lg font-semibold text-[#172017]">Next workflow</h2>
+                <p className="mt-1 text-sm leading-6 text-[#777064]">
+                  The dashboard is prepared around the core Axonote process.
+                </p>
+
+                <div className="mt-5 space-y-4">
+                  {nextSteps.map(([stepTitle, description], index) => (
+                    <div key={stepTitle} className="flex gap-3">
+                      <div className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-[#e6ecdf] text-xs font-semibold text-[#263e2f]">
+                        {index + 1}
+                      </div>
+                      <div>
+                        <p className="text-sm font-semibold text-[#1f241f]">{stepTitle}</p>
+                        <p className="mt-1 text-sm leading-5 text-[#777064]">{description}</p>
+                      </div>
                     </div>
-                    <div>
-                      <p className="text-sm font-semibold text-[#1f241f]">{title}</p>
-                      <p className="mt-1 text-sm leading-5 text-[#777064]">{description}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              </section>
             </aside>
           </div>
         </div>
