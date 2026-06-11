@@ -2,12 +2,16 @@
 
 import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
 
+import { GlassBadge } from "@/components/glass/glass-badge";
+import { GlassButton } from "@/components/glass/glass-button";
+import { GlassField } from "@/components/glass/glass-field";
+import { Segmented } from "@/components/glass/segmented";
+import { Navbar } from "@/components/shell/navbar";
+
 const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000/api/v1";
 const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ?? "";
 
-type GoogleCredentialResponse = {
-  credential: string;
-};
+type GoogleCredentialResponse = { credential: string };
 
 type GoogleAccountsId = {
   initialize: (config: {
@@ -28,11 +32,7 @@ declare global {
 
 type AuthMode = "login" | "register";
 
-type AuthUser = {
-  id: number;
-  name: string;
-  email: string;
-};
+type AuthUser = { id: number; name: string; email: string };
 
 type AuthResponse = {
   access_token: string;
@@ -54,7 +54,6 @@ export default function Home() {
   const handleGoogleCredential = useCallback(async (response: GoogleCredentialResponse) => {
     setIsSubmitting(true);
     setMessage("");
-
     try {
       const apiResponse = await fetch(`${apiBaseUrl}/auth/google`, {
         method: "POST",
@@ -62,12 +61,10 @@ export default function Home() {
         body: JSON.stringify({ credential: response.credential }),
       });
       const data = await apiResponse.json();
-
       if (!apiResponse.ok) {
         setMessage(data.detail ?? "Google sign-in failed.");
         return;
       }
-
       const authData = data as AuthResponse;
       setUser(authData.user);
       setToken(authData.access_token);
@@ -82,17 +79,12 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
-    if (!googleClientId || !googleButtonRef.current) {
-      return;
-    }
-
+    if (!googleClientId || !googleButtonRef.current) return;
     const container = googleButtonRef.current;
     let cancelled = false;
 
     function initGoogle() {
-      if (cancelled || !window.google?.accounts?.id) {
-        return;
-      }
+      if (cancelled || !window.google?.accounts?.id) return;
       window.google.accounts.id.initialize({
         client_id: googleClientId,
         callback: handleGoogleCredential,
@@ -101,7 +93,7 @@ export default function Home() {
       window.google.accounts.id.renderButton(container, {
         theme: "outline",
         size: "large",
-        width: container.offsetWidth || 360,
+        width: Math.min(container.offsetWidth || 400, 400),
       });
     }
 
@@ -109,38 +101,31 @@ export default function Home() {
       'script[src="https://accounts.google.com/gsi/client"]',
     );
     if (existingScript) {
-      if (window.google?.accounts?.id) {
-        initGoogle();
-      } else {
-        existingScript.addEventListener("load", initGoogle);
-      }
+      if (window.google?.accounts?.id) initGoogle();
+      else existingScript.addEventListener("load", initGoogle);
       return () => {
         cancelled = true;
         existingScript.removeEventListener("load", initGoogle);
       };
     }
-
     const script = document.createElement("script");
     script.src = "https://accounts.google.com/gsi/client";
     script.async = true;
     script.defer = true;
     script.onload = initGoogle;
     document.body.appendChild(script);
-
     return () => {
       cancelled = true;
     };
-  }, [handleGoogleCredential]);
+  }, [handleGoogleCredential, mode]);
 
   async function submitAuth(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setIsSubmitting(true);
     setMessage("");
-
     const endpoint = mode === "login" ? "/auth/login" : "/auth/register";
     const payload =
       mode === "login" ? { email, password } : { name: name.trim(), email, password };
-
     try {
       const response = await fetch(`${apiBaseUrl}${endpoint}`, {
         method: "POST",
@@ -148,12 +133,10 @@ export default function Home() {
         body: JSON.stringify(payload),
       });
       const data = await response.json();
-
       if (!response.ok) {
         setMessage(data.detail ?? "Authentication failed.");
         return;
       }
-
       const authData = data as AuthResponse;
       setUser(authData.user);
       setToken(authData.access_token);
@@ -173,18 +156,15 @@ export default function Home() {
       setMessage("No active session. Sign in first.");
       return;
     }
-
     try {
       const response = await fetch(`${apiBaseUrl}/auth/me`, {
         headers: { Authorization: `Bearer ${storedToken}` },
       });
       const data = await response.json();
-
       if (!response.ok) {
         setMessage(data.detail ?? "Session is invalid.");
         return;
       }
-
       setToken(storedToken);
       setUser(data as AuthUser);
       setMessage("Session verified.");
@@ -201,182 +181,136 @@ export default function Home() {
   }
 
   return (
-    <main className="min-h-screen bg-[#f6f4ef] text-[#1f241f]">
-      <section className="mx-auto flex min-h-screen w-full max-w-6xl flex-col px-5 py-6 sm:px-8">
-        <header className="flex items-center justify-between border-b border-[#ddd7ca] pb-5">
-          <div className="flex items-center gap-3">
-            <div className="grid h-9 w-9 place-items-center rounded-md bg-[#1f3327] text-sm font-semibold text-white">
-              A
-            </div>
-            <div>
-              <p className="text-sm font-semibold tracking-wide">Axonote</p>
-              <p className="text-xs text-[#777064]">Study notes, summarized.</p>
-            </div>
-          </div>
-          <p className="hidden text-sm text-[#777064] sm:block">Private workspace for your material</p>
-        </header>
+    <div className="min-h-screen pt-20">
+      <Navbar showNav={false} />
 
-        <div className="grid flex-1 gap-10 py-10 lg:grid-cols-[1fr_410px] lg:items-center lg:py-14">
-          <section className="max-w-2xl">
-            <p className="mb-5 inline-flex rounded-full border border-[#d6cebf] bg-white/70 px-3 py-1 text-sm text-[#5b544a]">
-              Early access dashboard
-            </p>
-            <h1 className="text-4xl font-semibold leading-tight tracking-tight text-[#172017] sm:text-5xl">
-              Build cleaner study summaries from the material you already have.
+      <main className="mx-auto max-w-5xl px-4 pb-12 sm:px-6">
+        <div className="grid items-start gap-10 lg:grid-cols-2 lg:gap-14">
+          {/* Cover */}
+          <section className="pt-4 lg:pt-8">
+            <GlassBadge tone="accent" className="mb-5">
+              Study notebook
+            </GlassBadge>
+            <h1 className="text-display">
+              Your notes,
+              <br />
+              <span className="highlighter">summarized.</span>
             </h1>
-            <p className="mt-5 max-w-xl text-base leading-7 text-[#5f5a51]">
-              Upload class notes, slides, or reading material, then keep summaries and practice
-              questions tied to your account. Authentication is the first working part of the
-              Axonote flow.
+            <p className="mt-5 max-w-md text-base font-medium leading-relaxed text-[var(--ink-muted)]">
+              Upload materials, get clear summaries, and practice with quiz questions — all in one
+              organized notebook.
             </p>
-
-            <div className="mt-8 grid max-w-xl gap-3 sm:grid-cols-3">
-              {[
-                ["Account", "Keep each material private."],
-                ["Summaries", "Save notes per upload."],
-                ["Practice", "Track quiz attempts later."],
-              ].map(([title, description]) => (
-                <div key={title} className="rounded-lg border border-[#ddd7ca] bg-white/60 p-4">
-                  <p className="text-sm font-semibold text-[#1f241f]">{title}</p>
-                  <p className="mt-1 text-xs leading-5 text-[#777064]">{description}</p>
-                </div>
-              ))}
-            </div>
+            <ul className="mt-8 space-y-2 text-sm font-medium text-[var(--ink-muted)]">
+              <li>Private by default</li>
+              <li>ML-powered summaries</li>
+              <li>Quiz-ready practice</li>
+            </ul>
           </section>
 
-          <section className="rounded-lg border border-[#d8d1c2] bg-[#fffdf8] p-5 shadow-[0_18px_50px_rgba(44,39,30,0.12)]">
-            <div className="mb-5">
-              <h2 className="text-xl font-semibold text-[#172017]">
+          {/* Auth card */}
+          <section className="lg:pt-4">
+            <div className="glass-panel mx-auto w-full max-w-md p-6 sm:p-8">
+              <h2 className="handwriting text-3xl font-bold text-[var(--ink)]">
                 {mode === "login" ? "Sign in" : "Create account"}
               </h2>
-              <p className="mt-1 text-sm text-[#777064]">
+              <p className="mt-1 text-sm font-medium text-[var(--ink-muted)]">
                 {mode === "login"
-                  ? "Continue to your Axonote workspace."
-                  : "Start with a personal workspace."}
+                  ? "Welcome back to your desk."
+                  : "Start a new notebook in seconds."}
               </p>
-            </div>
 
-            <div className="mb-5 grid grid-cols-2 rounded-md border border-[#ddd7ca] bg-[#f1ede5] p-1">
-              <button
-                type="button"
-                onClick={() => setMode("login")}
-                className={`rounded px-4 py-2 text-sm font-medium transition ${
-                  mode === "login" ? "bg-white text-[#172017] shadow-sm" : "text-[#70685d]"
-                }`}
-              >
-                Login
-              </button>
-              <button
-                type="button"
-                onClick={() => setMode("register")}
-                className={`rounded px-4 py-2 text-sm font-medium transition ${
-                  mode === "register" ? "bg-white text-[#172017] shadow-sm" : "text-[#70685d]"
-                }`}
-              >
-                Register
-              </button>
-            </div>
+              <Segmented
+                className="mt-6"
+                options={[
+                  { id: "login" as const, label: "Sign in" },
+                  { id: "register" as const, label: "Register" },
+                ]}
+                value={mode}
+                onChange={setMode}
+              />
 
-            <form className="space-y-4" onSubmit={submitAuth}>
-              {mode === "register" ? (
-                <label className="block text-sm font-medium text-[#2f342f]">
-                  Name
-                  <input
-                    value={name}
-                    onChange={(event) => setName(event.target.value)}
-                    className="mt-2 w-full rounded-md border border-[#cfc7b8] bg-white px-3 py-2.5 text-sm outline-none transition placeholder:text-[#aaa39a] focus:border-[#526b55] focus:ring-3 focus:ring-[#526b55]/15"
+              <form className="mt-6 space-y-4" onSubmit={submitAuth}>
+                {mode === "register" ? (
+                  <GlassField
+                    label="Display name"
                     placeholder="Your name"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
                     minLength={2}
                     required
                   />
-                </label>
-              ) : null}
-
-              <label className="block text-sm font-medium text-[#2f342f]">
-                Email
-                <input
+                ) : null}
+                <GlassField
+                  label="Email"
                   type="email"
-                  value={email}
-                  onChange={(event) => setEmail(event.target.value)}
-                  className="mt-2 w-full rounded-md border border-[#cfc7b8] bg-white px-3 py-2.5 text-sm outline-none transition placeholder:text-[#aaa39a] focus:border-[#526b55] focus:ring-3 focus:ring-[#526b55]/15"
                   placeholder="you@example.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
                   required
                 />
-              </label>
-
-              <label className="block text-sm font-medium text-[#2f342f]">
-                Password
-                <input
+                <GlassField
+                  label="Password"
                   type="password"
+                  placeholder="At least 8 characters"
                   value={password}
-                  onChange={(event) => setPassword(event.target.value)}
-                  className="mt-2 w-full rounded-md border border-[#cfc7b8] bg-white px-3 py-2.5 text-sm outline-none transition placeholder:text-[#aaa39a] focus:border-[#526b55] focus:ring-3 focus:ring-[#526b55]/15"
-                  placeholder="Minimum 8 characters"
+                  onChange={(e) => setPassword(e.target.value)}
                   minLength={8}
                   required
                 />
-              </label>
+                <GlassButton type="submit" variant="solid" fullWidth disabled={isSubmitting}>
+                  {isSubmitting
+                    ? "Please wait..."
+                    : mode === "login"
+                      ? "Continue"
+                      : "Create account"}
+                </GlassButton>
+              </form>
 
-              <button
-                type="submit"
-                disabled={isSubmitting}
-                className="w-full rounded-md bg-[#263e2f] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#1d3024] disabled:cursor-not-allowed disabled:bg-[#a8a397]"
-              >
-                {isSubmitting ? "Please wait..." : mode === "login" ? "Login" : "Create account"}
-              </button>
-            </form>
-
-            {googleClientId ? (
-              <div className="mt-4">
-                <div className="mb-4 flex items-center gap-3">
-                  <div className="h-px flex-1 bg-[#ddd7ca]" />
-                  <span className="text-xs font-medium uppercase tracking-wide text-[#8a8276]">
-                    or
-                  </span>
-                  <div className="h-px flex-1 bg-[#ddd7ca]" />
+              {googleClientId ? (
+                <div className="mt-6">
+                  <div className="relative mb-4">
+                    <div className="absolute inset-0 flex items-center">
+                      <div className="w-full border-t border-dashed border-[var(--glass-border)]" />
+                    </div>
+                    <p className="relative mx-auto w-fit bg-[var(--paper)] px-3 text-xs font-semibold text-[var(--ink-muted)]">
+                      or continue with
+                    </p>
+                  </div>
+                  <div
+                    ref={googleButtonRef}
+                    className="flex w-full justify-center [&>div]:!w-full [&_iframe]:!w-full"
+                  />
                 </div>
-                <div ref={googleButtonRef} className="flex justify-center" />
-              </div>
-            ) : null}
+              ) : null}
 
-            <div className="mt-4 grid grid-cols-2 gap-3">
-              <button
-                type="button"
-                onClick={loadProfile}
-                className="rounded-md border border-[#cfc7b8] px-4 py-2.5 text-sm font-medium text-[#3f463f] transition hover:bg-[#f6f1e8]"
-              >
-                Check session
-              </button>
-              <button
-                type="button"
-                onClick={logout}
-                className="rounded-md border border-[#cfc7b8] px-4 py-2.5 text-sm font-medium text-[#3f463f] transition hover:bg-[#f6f1e8]"
-              >
-                Logout
-              </button>
+              <div className="mt-5 flex gap-2 border-t border-dashed border-[var(--glass-border)] pt-5">
+                <GlassButton variant="glass" className="flex-1" onClick={loadProfile}>
+                  Verify session
+                </GlassButton>
+                <GlassButton variant="ghost" className="flex-1" onClick={logout}>
+                  Sign out
+                </GlassButton>
+              </div>
+
+              {message ? (
+                <p className="mt-4 rounded-md bg-[var(--accent-muted)] px-3 py-2 text-sm font-medium text-[var(--ink)]">
+                  {message}
+                </p>
+              ) : null}
+
+              {user ? (
+                <div className="mt-4 rounded-md bg-[var(--success-bg)] p-4 text-sm text-[var(--success-text)]">
+                  <p className="font-semibold">{user.name}</p>
+                  <p className="mt-0.5 opacity-90">{user.email}</p>
+                  <a href="/dashboard" className="mt-3 inline-block text-sm font-semibold underline">
+                    Open workspace
+                  </a>
+                </div>
+              ) : null}
             </div>
-
-            {message ? (
-              <p className="mt-4 rounded-md border border-[#e2dccf] bg-[#f6f1e8] px-3 py-2 text-sm text-[#5f5a51]">
-                {message}
-              </p>
-            ) : null}
-
-            {user ? (
-              <div className="mt-4 rounded-md border border-[#bed2c1] bg-[#eef6ef] p-4 text-sm text-[#223728]">
-                <p className="font-semibold">Logged in as {user.name}</p>
-                <p className="mt-1 text-[#526b55]">{user.email}</p>
-                <a
-                  href="/dashboard"
-                  className="mt-3 inline-flex text-sm font-semibold text-[#263e2f] underline-offset-4 hover:underline"
-                >
-                  Open dashboard
-                </a>
-              </div>
-            ) : null}
           </section>
         </div>
-      </section>
-    </main>
+      </main>
+    </div>
   );
 }

@@ -2,13 +2,16 @@
 
 import { FormEvent, useEffect, useState } from "react";
 
+import { BentoCard } from "@/components/glass/bento-card";
+import { GlassBadge } from "@/components/glass/glass-badge";
+import { GlassButton } from "@/components/glass/glass-button";
+import { GlassField } from "@/components/glass/glass-field";
+import { StatTile } from "@/components/glass/stat-tile";
+import { AppShell } from "@/components/shell/app-shell";
+
 const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000/api/v1";
 
-type AuthUser = {
-  id: number;
-  name: string;
-  email: string;
-};
+type AuthUser = { id: number; name: string; email: string };
 
 type MaterialItem = {
   id: number;
@@ -22,15 +25,12 @@ type MaterialItem = {
   updated_at: string;
 };
 
-type MaterialListResponse = {
-  items: MaterialItem[];
-  total: number;
-};
+type MaterialListResponse = { items: MaterialItem[]; total: number };
 
-const nextSteps = [
-  ["Upload material", "Add lecture notes, slides, or reading material."],
-  ["Generate summary", "Extract key points and important concepts."],
-  ["Create practice", "Build multiple-choice questions from the summary."],
+const WORKFLOW = [
+  { step: "1", title: "Upload", desc: "PDF, DOCX, or PPTX up to 20 MB." },
+  { step: "2", title: "Analyze", desc: "Worker extracts and summarizes content." },
+  { step: "3", title: "Practice", desc: "Quiz questions from your summaries." },
 ];
 
 function formatBytes(bytes: number) {
@@ -61,11 +61,7 @@ export default function DashboardPage() {
       headers: { Authorization: `Bearer ${token}` },
     });
     const data = await response.json();
-
-    if (!response.ok) {
-      throw new Error(data.detail ?? "Unable to load materials.");
-    }
-
+    if (!response.ok) throw new Error(data.detail ?? "Unable to load materials.");
     setMaterials((data as MaterialListResponse).items);
   }
 
@@ -76,20 +72,17 @@ export default function DashboardPage() {
       return;
     }
     const authToken = token;
-
     async function loadWorkspace() {
       try {
         const response = await fetch(`${apiBaseUrl}/auth/me`, {
           headers: { Authorization: `Bearer ${authToken}` },
         });
         const data = await response.json();
-
         if (!response.ok) {
           window.localStorage.removeItem("axonote_token");
           window.location.href = "/";
           return;
         }
-
         setUser(data as AuthUser);
         await loadMaterials(authToken);
         setStatus("Workspace ready");
@@ -97,31 +90,25 @@ export default function DashboardPage() {
         setStatus("Cannot reach the API. Make sure the backend is running.");
       }
     }
-
     loadWorkspace();
   }, []);
 
   async function uploadMaterial(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const token = window.localStorage.getItem("axonote_token");
-
     if (!token) {
       window.location.href = "/";
       return;
     }
-
     if (!file) {
       setUploadStatus("Choose a PDF, DOCX, or PPTX file first.");
       return;
     }
-
     const formData = new FormData();
     formData.append("file", file);
     if (title.trim()) formData.append("title", title.trim());
-
     setIsUploading(true);
-    setUploadStatus("Uploading material...");
-
+    setUploadStatus("Uploading...");
     try {
       const response = await fetch(`${apiBaseUrl}/materials`, {
         method: "POST",
@@ -129,12 +116,10 @@ export default function DashboardPage() {
         body: formData,
       });
       const data = await response.json();
-
       if (!response.ok) {
         setUploadStatus(data.detail ?? "Upload failed.");
         return;
       }
-
       setTitle("");
       setFile(null);
       setUploadStatus("Material uploaded.");
@@ -151,179 +136,122 @@ export default function DashboardPage() {
     window.location.href = "/";
   }
 
+  const pending = materials.filter((m) => m.status === "pending").length;
+  const ready = materials.filter((m) => m.status === "ready").length;
+
   return (
-    <main className="min-h-screen bg-[#f6f4ef] text-[#1f241f]">
-      <section className="mx-auto flex min-h-screen w-full max-w-7xl flex-col px-5 py-6 sm:px-8">
-        <header className="flex flex-col gap-4 border-b border-[#ddd7ca] pb-5 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-center gap-3">
-            <div className="grid h-9 w-9 place-items-center rounded-md bg-[#1f3327] text-sm font-semibold text-white">
-              A
-            </div>
-            <div>
-              <p className="text-sm font-semibold tracking-wide">Axonote</p>
-              <p className="text-xs text-[#777064]">User dashboard</p>
-            </div>
-          </div>
+    <AppShell
+      title={user ? `Hey, ${user.name.split(" ")[0]}` : "My Desk"}
+      subtitle={status}
+      trailing={
+        <GlassButton variant="ghost" onClick={logout}>
+          Sign out
+        </GlassButton>
+      }
+    >
+      <div className="space-y-8">
+        <section className="grid gap-4 sm:grid-cols-3">
+          <StatTile label="Materials" value={String(materials.length)} hint="Total uploads" color="yellow" />
+          <StatTile label="Pending" value={String(pending)} hint="Awaiting analysis" color="pink" delay={0.05} />
+          <StatTile label="Ready" value={String(ready)} hint="Completed" color="green" delay={0.1} />
+        </section>
 
-          <div className="flex items-center gap-3">
-            <div className="hidden text-right sm:block">
-              <p className="text-sm font-medium text-[#1f241f]">{user?.name ?? "Loading..."}</p>
-              <p className="text-xs text-[#777064]">{user?.email ?? status}</p>
-            </div>
-            <button
-              type="button"
-              onClick={logout}
-              className="rounded-md border border-[#cfc7b8] bg-white/60 px-4 py-2 text-sm font-medium text-[#3f463f] transition hover:bg-white"
-            >
-              Logout
-            </button>
-          </div>
-        </header>
-
-        <div className="py-8">
-          <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
-            <div>
-              <p className="mb-3 inline-flex rounded-full border border-[#d6cebf] bg-white/70 px-3 py-1 text-sm text-[#5b544a]">
-                {status}
-              </p>
-              <h1 className="text-3xl font-semibold tracking-tight text-[#172017] sm:text-5xl">
-                Welcome back{user ? `, ${user.name}` : ""}.
-              </h1>
-              <p className="mt-4 max-w-2xl text-base leading-7 text-[#5f5a51]">
-                Upload study material here. Axonote will keep it in your workspace so the next
-                step can generate summaries and practice questions from the file.
-              </p>
-            </div>
-          </div>
-
-          <div className="mt-8 grid gap-4 md:grid-cols-3">
-            {[
-              ["Materials", String(materials.length), "Uploaded files"],
-              ["Pending", String(materials.filter((item) => item.status === "pending").length), "Awaiting analysis"],
-              ["Ready", String(materials.filter((item) => item.status === "ready").length), "Completed materials"],
-            ].map(([label, value, caption]) => (
-              <section key={label} className="rounded-lg border border-[#ddd7ca] bg-[#fffdf8] p-5">
-                <p className="text-sm font-medium text-[#777064]">{label}</p>
-                <p className="mt-3 text-3xl font-semibold text-[#172017]">{value}</p>
-                <p className="mt-1 text-sm text-[#777064]">{caption}</p>
-              </section>
-            ))}
-          </div>
-
-          <div className="mt-6 grid gap-6 lg:grid-cols-[1fr_360px]">
-            <section className="rounded-lg border border-[#ddd7ca] bg-[#fffdf8] p-5">
-              <div className="flex items-center justify-between border-b border-[#eee8dc] pb-4">
+        <section className="grid gap-6 lg:grid-cols-3">
+          <div className="lg:col-span-2">
+            <BentoCard span={12} padding="1.5rem" revealDelay={0.05}>
+              <div className="mb-5 flex items-center justify-between gap-3">
                 <div>
-                  <h2 className="text-lg font-semibold text-[#172017]">Recent material</h2>
-                  <p className="mt-1 text-sm text-[#777064]">Files you upload will appear here.</p>
+                  <h2 className="handwriting text-2xl font-bold">Material library</h2>
+                  <p className="text-sm font-medium text-[var(--ink-muted)]">Your uploaded study files</p>
                 </div>
+                <GlassBadge tone="accent">{materials.length} items</GlassBadge>
               </div>
 
-              <div className="mt-4 space-y-3">
-                {materials.length === 0 ? (
-                  <div className="rounded-md border border-dashed border-[#d5cdbc] bg-[#fdfaf3] p-6 text-sm text-[#777064]">
-                    No material uploaded yet. Use the upload panel to add your first file.
-                  </div>
-                ) : (
-                  materials.map((item) => (
-                    <div
+              {materials.length === 0 ? (
+                <div className="glass-surface rounded-md border border-dashed border-[var(--glass-border)] p-10 text-center text-sm text-[var(--ink-muted)]">
+                  No materials yet. Upload your first file using the panel on the right.
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {materials.map((item) => (
+                    <a
                       key={item.id}
-                      className="grid gap-3 rounded-md border border-[#eee8dc] bg-[#fdfaf3] p-4 sm:grid-cols-[1fr_auto]"
+                      href={`/materials/${item.id}`}
+                      className="glass-surface flex items-center justify-between gap-4 rounded-md p-4 transition hover:bg-[var(--accent-muted)]"
                     >
-                      <div>
-                        <p className="font-medium text-[#1f241f]">{item.title}</p>
-                        <p className="mt-1 text-sm text-[#777064]">
+                      <div className="min-w-0">
+                        <p className="truncate text-base font-semibold text-[var(--ink)]">{item.title}</p>
+                        <p className="mt-0.5 truncate text-xs text-[var(--ink-muted)]">
                           {item.original_name} · {formatBytes(item.size_bytes)}
                         </p>
-                        <a
-                          href={`/materials/${item.id}`}
-                          className="mt-3 inline-flex text-sm font-semibold text-[#263e2f] underline-offset-4 hover:underline"
-                        >
-                          Open material
-                        </a>
                       </div>
-                      <div className="text-left sm:text-right">
-                        <p className="text-sm font-medium capitalize text-[#526b55]">
+                      <div className="shrink-0 text-right">
+                        <GlassBadge tone={item.status === "ready" ? "success" : "default"}>
                           {item.status}
+                        </GlassBadge>
+                        <p className="mt-1 text-xs text-[var(--ink-muted)]">
+                          {formatDate(item.created_at)}
                         </p>
-                        <p className="mt-1 text-xs text-[#8a8276]">
-                          Uploaded {formatDate(item.created_at)}
-                        </p>
                       </div>
-                    </div>
-                  ))
-                )}
-              </div>
-            </section>
-
-            <aside className="space-y-6">
-              <section className="rounded-lg border border-[#ddd7ca] bg-[#fffdf8] p-5">
-                <h2 className="text-lg font-semibold text-[#172017]">Upload material</h2>
-                <p className="mt-1 text-sm leading-6 text-[#777064]">
-                  Supported files: PDF, DOCX, and PPTX up to 20 MB.
-                </p>
-
-                <form className="mt-5 space-y-4" onSubmit={uploadMaterial}>
-                  <label className="block text-sm font-medium text-[#2f342f]">
-                    Title
-                    <input
-                      value={title}
-                      onChange={(event) => setTitle(event.target.value)}
-                      className="mt-2 w-full rounded-md border border-[#cfc7b8] bg-white px-3 py-2.5 text-sm outline-none transition placeholder:text-[#aaa39a] focus:border-[#526b55] focus:ring-3 focus:ring-[#526b55]/15"
-                      placeholder="Optional title"
-                    />
-                  </label>
-
-                  <label className="block text-sm font-medium text-[#2f342f]">
-                    File
-                    <input
-                      type="file"
-                      accept=".pdf,.docx,.pptx"
-                      onChange={(event) => setFile(event.target.files?.[0] ?? null)}
-                      className="mt-2 w-full rounded-md border border-[#cfc7b8] bg-white px-3 py-2 text-sm file:mr-3 file:rounded file:border-0 file:bg-[#e6ecdf] file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-[#263e2f]"
-                    />
-                  </label>
-
-                  <button
-                    type="submit"
-                    disabled={isUploading}
-                    className="w-full rounded-md bg-[#263e2f] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#1d3024] disabled:cursor-not-allowed disabled:bg-[#a8a397]"
-                  >
-                    {isUploading ? "Uploading..." : "Upload material"}
-                  </button>
-                </form>
-
-                {uploadStatus ? (
-                  <p className="mt-4 rounded-md border border-[#e2dccf] bg-[#f6f1e8] px-3 py-2 text-sm text-[#5f5a51]">
-                    {uploadStatus}
-                  </p>
-                ) : null}
-              </section>
-
-              <section className="rounded-lg border border-[#ddd7ca] bg-[#fffdf8] p-5">
-                <h2 className="text-lg font-semibold text-[#172017]">Next workflow</h2>
-                <p className="mt-1 text-sm leading-6 text-[#777064]">
-                  The dashboard is prepared around the core Axonote process.
-                </p>
-
-                <div className="mt-5 space-y-4">
-                  {nextSteps.map(([stepTitle, description], index) => (
-                    <div key={stepTitle} className="flex gap-3">
-                      <div className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-[#e6ecdf] text-xs font-semibold text-[#263e2f]">
-                        {index + 1}
-                      </div>
-                      <div>
-                        <p className="text-sm font-semibold text-[#1f241f]">{stepTitle}</p>
-                        <p className="mt-1 text-sm leading-5 text-[#777064]">{description}</p>
-                      </div>
-                    </div>
+                    </a>
                   ))}
                 </div>
-              </section>
-            </aside>
+              )}
+            </BentoCard>
           </div>
-        </div>
-      </section>
-    </main>
+
+          <div>
+            <BentoCard span={12} padding="1.5rem" revealDelay={0.1}>
+              <h2 className="handwriting text-2xl font-bold">Quick upload</h2>
+              <p className="mt-1 text-sm font-medium text-[var(--ink-muted)]">PDF · DOCX · PPTX</p>
+              <form className="mt-5 space-y-4" onSubmit={uploadMaterial}>
+                <GlassField
+                  label="Title"
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                />
+                <label className="block space-y-1.5">
+                  <span className="block text-sm font-semibold text-[var(--ink)]">File</span>
+                  <input
+                    type="file"
+                    accept=".pdf,.docx,.pptx"
+                    onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+                    className="glass-surface w-full rounded-md px-3 py-2.5 text-sm file:mr-3 file:rounded-md file:border-0 file:bg-[var(--accent-muted)] file:px-3 file:py-1 file:text-xs file:font-semibold file:text-[var(--ink)]"
+                  />
+                </label>
+                <GlassButton type="submit" variant="solid" fullWidth disabled={isUploading}>
+                  {isUploading ? "Uploading..." : "Upload"}
+                </GlassButton>
+              </form>
+              {uploadStatus ? (
+                <p className="mt-3 text-xs font-medium text-[var(--ink-muted)]">{uploadStatus}</p>
+              ) : null}
+            </BentoCard>
+          </div>
+        </section>
+
+        <section>
+          <BentoCard span={12} padding="1.5rem" revealDelay={0.15}>
+            <h2 className="mb-5 text-sm font-semibold uppercase tracking-wide text-[var(--ink-muted)]">
+              How it works
+            </h2>
+            <div className="grid gap-4 sm:grid-cols-3">
+              {WORKFLOW.map((w, i) => (
+                <div
+                  key={w.step}
+                  className={`sticky-note sticky-note--flat p-5 ${
+                    i === 1 ? "sticky-note--pink" : i === 2 ? "sticky-note--blue" : ""
+                  }`}
+                >
+                  <span className="handwriting text-2xl font-bold text-[var(--ink-muted)]">{w.step}</span>
+                  <p className="mt-2 text-base font-semibold text-[var(--ink)]">{w.title}</p>
+                  <p className="mt-1 text-sm text-[var(--ink-muted)]">{w.desc}</p>
+                </div>
+              ))}
+            </div>
+          </BentoCard>
+        </section>
+      </div>
+    </AppShell>
   );
 }
