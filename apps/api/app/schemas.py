@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from pydantic import BaseModel, Field, field_validator
 
 
@@ -39,3 +41,30 @@ class TokenResponse(BaseModel):
     access_token: str
     token_type: str = "bearer"
     user: UserRead
+
+
+class MaterialRead(BaseModel):
+    id: int
+    title: str
+    original_name: str
+    mime_type: str
+    size_bytes: int
+    status: str
+    error_message: str | None = None
+    created_at: datetime
+    updated_at: datetime
+
+
+class MaterialListResponse(BaseModel):
+    items: list[MaterialRead]
+    total: int
+
+
+class JobRead(BaseModel):
+    id: int
+    material_id: int
+    type: str
+    status: str
+    error_message: str | None = None
+    created_at: datetime
+    finished_at: datetime | None = None

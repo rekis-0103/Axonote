@@ -8,6 +8,7 @@ pydantic-settings>=2.7
 python-dotenv>=1.2.2
 sqlalchemy>=2.0
 pymysql>=1.1
+python-multipart>=0.0.20
 google-auth>=2.34
 requests>=2.31
 

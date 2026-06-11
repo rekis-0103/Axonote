@@ -7,6 +7,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.auth import router as auth_router
 from app.config import get_settings
 from app.db import init_db
+from app.jobs import router as jobs_router
+from app.materials import router as materials_router
 
 
 @asynccontextmanager
@@ -41,6 +43,8 @@ def create_app() -> FastAPI:
         return {"message": "pong"}
 
     app.include_router(auth_router)
+    app.include_router(materials_router)
+    app.include_router(jobs_router)
 
     return app
 

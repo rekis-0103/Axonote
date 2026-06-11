@@ -24,10 +24,24 @@ class Settings(BaseSettings):
     access_token_expire_minutes: int = 15
     google_client_id: str = ""
     google_clock_skew_seconds: int = 120
+    upload_dir: str = "uploads"
+    max_upload_bytes: int = 20 * 1024 * 1024
+    allowed_extensions: str = "pdf,docx,pptx"
 
     @property
     def cors_origin_list(self) -> list[str]:
         return [o.strip() for o in self.cors_origins.split(",") if o.strip()]
+
+    @property
+    def allowed_extension_set(self) -> set[str]:
+        return {ext.strip().lower().lstrip(".") for ext in self.allowed_extensions.split(",")}
+
+    @property
+    def upload_path(self) -> Path:
+        path = Path(self.upload_dir)
+        if path.is_absolute():
+            return path
+        return _API_ROOT.parent.parent / path
 
 
 @lru_cache
