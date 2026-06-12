@@ -14,6 +14,8 @@
   --ink-muted: #4a5a70;
   --rule-line: rgba(100, 149, 237, 0.35);
   --margin-line: rgba(220, 80, 80, 0.55);
+  --paper-edge: rgba(110, 86, 48, 0.16);
+  --paper-hole: #d8cbb3;
   --accent: #ffe566;
   --accent-ink: #1a2744;
   --accent-muted: rgba(255, 229, 102, 0.45);
@@ -39,6 +41,9 @@
   --space-8: 2rem;
   --rail-width: 220px;
   --sidebar-width: 220px;
+  --font-hand: "Comic Sans MS", "Segoe Print", "Bradley Hand ITC", cursive;
+  --font-marker: "Segoe Print", "Comic Sans MS", cursive;
+  --font-body: "Segoe UI", "Inter", system-ui, sans-serif;
   --paper-shadow-stack: 2px 3px 0 var(--paper-shadow), 4px 6px 12px rgba(60, 45, 30, 0.12);
   --glass-tint-rgb: 247 241 227;
   --glass-tint-alpha: 0.95;
@@ -62,6 +67,8 @@
   --ink-muted: #a0b4a8;
   --rule-line: rgba(200, 220, 210, 0.12);
   --margin-line: rgba(255, 180, 180, 0.35);
+  --paper-edge: rgba(0, 0, 0, 0.32);
+  --paper-hole: #17251f;
   --accent: #ffe566;
   --accent-ink: #1a2820;
   --accent-muted: rgba(255, 229, 102, 0.2);
@@ -75,6 +82,9 @@
   --danger-text: #ff9a9a;
   --success-bg: rgba(120, 220, 160, 0.15);
   --success-text: #7dffb0;
+  --font-hand: "Segoe Print", "Comic Sans MS", cursive;
+  --font-marker: "Segoe Print", "Comic Sans MS", cursive;
+  --font-body: "Segoe UI", "Inter", system-ui, sans-serif;
   --glass-tint-rgb: 42 64 56;
   --glass-border: rgba(200, 220, 210, 0.15);
   --glass-border-subtle: rgba(200, 220, 210, 0.08);
@@ -102,6 +112,11 @@
 
 * {
   box-sizing: border-box;
+}
+
+*:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 3px;
 }
 
 html {
@@ -183,11 +198,11 @@ body {
 .notebook-rule {
   background-image: repeating-linear-gradient(
     transparent,
-    transparent calc(1.75rem - 1px),
-    var(--rule-line) calc(1.75rem - 1px),
-    var(--rule-line) 1.75rem
+    transparent calc(1.85rem - 1px),
+    var(--rule-line) calc(1.85rem - 1px),
+    var(--rule-line) 1.85rem
   );
-  background-size: 100% 1.75rem;
+  background-size: 100% 1.85rem;
   background-position: 0 0.5rem;
 }
 
@@ -239,6 +254,121 @@ body {
   border-radius: var(--radius-lg);
   box-shadow: var(--glass-shadow);
   isolation: isolate;
+}
+
+body[data-surface="workspace"] .aurora-paper {
+  opacity: 0.78;
+  box-shadow: 2px 3px 0 var(--paper-shadow), 4px 8px 18px rgba(60, 45, 30, 0.1) !important;
+}
+
+body[data-surface="workspace"] .aurora-doodle {
+  opacity: 0.12 !important;
+}
+
+body[data-surface="workspace"] .paper-grain::before {
+  opacity: 0.025;
+}
+
+.workspace-shell .glass-panel,
+.workspace-shell .glass-surface {
+  box-shadow: 1px 2px 0 var(--paper-shadow), 3px 6px 16px rgba(60, 45, 30, 0.1);
+}
+
+.workspace-shell .sticky-note {
+  box-shadow: 1px 2px 0 rgba(0, 0, 0, 0.07), 2px 4px 10px rgba(0, 0, 0, 0.08);
+}
+
+.aurora-paper {
+  left: max(0.75rem, 8%) !important;
+  right: max(0.75rem, 8%) !important;
+  top: max(1.875rem, 3%) !important;
+  bottom: max(0.75rem, 5%) !important;
+  overflow: hidden;
+}
+
+.aurora-paper::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: clamp(2.4rem, 5vw, 4.8rem);
+  background:
+    linear-gradient(to right, rgba(255, 255, 255, 0.42), transparent 70%),
+    linear-gradient(to right, var(--paper-edge), transparent);
+  border-right: 2px solid var(--margin-line);
+  pointer-events: none;
+}
+
+.aurora-paper::after {
+  content: "";
+  position: absolute;
+  left: clamp(0.75rem, 1.7vw, 1.5rem);
+  top: 2rem;
+  bottom: 2rem;
+  width: 0.85rem;
+  background-image: radial-gradient(circle, var(--paper-hole) 0 0.28rem, transparent 0.3rem);
+  background-size: 0.85rem 3.1rem;
+  background-repeat: repeat-y;
+  filter: drop-shadow(1px 1px 0 rgba(255, 255, 255, 0.38));
+  pointer-events: none;
+}
+
+.aurora-margin-line {
+  left: calc(max(0.75rem, 8%) + clamp(2.4rem, 5vw, 4.8rem)) !important;
+  top: max(1.875rem, 3%) !important;
+  bottom: max(0.75rem, 5%) !important;
+}
+
+@media (min-width: 1280px) {
+  .aurora-paper {
+    left: 8% !important;
+    right: 8% !important;
+  }
+}
+
+@media (max-width: 640px) {
+  .aurora-paper {
+    left: 0.5rem !important;
+    right: 0.5rem !important;
+    top: 4.25rem !important;
+    bottom: 0.5rem !important;
+    border-radius: 10px;
+  }
+
+  .aurora-paper::before {
+    width: 2.05rem;
+  }
+
+  .aurora-paper::after {
+    left: 0.55rem;
+    opacity: 0.85;
+  }
+
+  .aurora-margin-line {
+    left: 2.55rem !important;
+    top: 4.25rem !important;
+    bottom: 0.5rem !important;
+  }
+}
+
+.status-alert {
+  border: 1.5px solid var(--glass-border);
+  border-left: 4px solid var(--accent);
+  border-radius: var(--radius-md);
+  background: var(--paper);
+  color: var(--ink);
+  box-shadow: 1px 2px 0 var(--paper-shadow), 3px 6px 14px rgba(60, 45, 30, 0.08);
+}
+
+.status-alert--danger {
+  border-left-color: var(--danger-text);
+  background: var(--danger-bg);
+  color: var(--danger-text);
+}
+
+.status-alert--success {
+  border-left-color: var(--success-text);
+  background: var(--success-bg);
+  color: var(--success-text);
 }
 
 .paper-card {

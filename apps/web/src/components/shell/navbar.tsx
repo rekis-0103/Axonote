@@ -15,7 +15,7 @@ type NavItem = {
 
 const NAV_ITEMS: NavItem[] = [
   { href: "/dashboard", label: "My Desk", match: (p) => p === "/dashboard" },
-  { href: "/dashboard", label: "Pages", match: (p) => p.startsWith("/materials") },
+  { href: "/dashboard", label: "Materials", match: (p) => p.startsWith("/materials") },
 ];
 
 type NavbarProps = {

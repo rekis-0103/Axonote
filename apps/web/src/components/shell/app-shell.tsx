@@ -1,6 +1,6 @@
 "use client";
 
-import { type ReactNode } from "react";
+import { useEffect, type ReactNode } from "react";
 
 import { Navbar } from "./navbar";
 
@@ -12,8 +12,15 @@ type AppShellProps = {
 };
 
 export function AppShell({ title, subtitle, trailing, children }: AppShellProps) {
+  useEffect(() => {
+    document.body.setAttribute("data-surface", "workspace");
+    return () => {
+      document.body.removeAttribute("data-surface");
+    };
+  }, []);
+
   return (
-    <div className="min-h-screen pt-20">
+    <div className="workspace-shell min-h-screen pt-20">
       <Navbar trailing={trailing} />
       <main className="mx-auto max-w-6xl px-4 py-6 sm:px-6 lg:px-8">
         <header className="mb-8">

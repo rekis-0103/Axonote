@@ -24,7 +24,7 @@ export function IconButton({
       aria-label={label}
       aria-expanded={ariaExpanded}
       onClick={onClick}
-      className={`glass-surface paper-grain grid h-9 w-9 place-items-center rounded-full text-[var(--ink-muted)] ${className}`}
+      className={`glass-surface paper-grain inline-flex h-9 min-w-9 items-center justify-center gap-2 rounded-full px-2.5 text-[var(--ink-muted)] ${className}`}
       whileTap={{ scale: 0.95 }}
       transition={{ duration: 0.15 }}
     >

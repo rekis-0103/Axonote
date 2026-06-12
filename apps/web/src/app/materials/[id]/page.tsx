@@ -54,6 +54,10 @@ export default function MaterialDetailPage() {
   const [job, setJob] = useState<JobItem | null>(null);
   const [message, setMessage] = useState("Loading material...");
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const isErrorMessage =
+    message.startsWith("Cannot reach") ||
+    message.includes("not found") ||
+    message.startsWith("Unable");
 
   async function requestWithAuth(path: string, init: RequestInit = {}) {
     const token = window.localStorage.getItem("axonote_token");
@@ -139,15 +143,21 @@ export default function MaterialDetailPage() {
       }
     >
       <div className="space-y-6">
+        {isErrorMessage ? (
+          <div className="status-alert status-alert--danger px-4 py-3 text-sm font-semibold">
+            {message}
+          </div>
+        ) : null}
+
         <BentoCard span={12} padding="1.75rem" revealDelay={0}>
           <GlassBadge tone="accent" className="mb-3">
             {material?.status ?? "loading"}
           </GlassBadge>
-          <p className="text-sm font-medium text-[var(--ink-muted)]">
+          <p className="text-base font-semibold text-[var(--ink-muted)]">
             {material?.original_name} · {material ? formatBytes(material.size_bytes) : "—"}
           </p>
           {material?.error_message ? (
-            <p className="mt-4 rounded-md bg-[var(--danger-bg)] px-4 py-2 text-sm text-[var(--danger-text)]">
+            <p className="status-alert status-alert--danger mt-4 px-4 py-2 text-sm font-semibold">
               {material.error_message}
             </p>
           ) : null}
@@ -162,7 +172,7 @@ export default function MaterialDetailPage() {
               ["Uploaded", formatDate(material.created_at)],
             ].map(([label, value], i) => (
               <BentoCard key={label} span={12} padding="1rem" revealDelay={0.04 + i * 0.03}>
-                <p className="text-xs font-semibold uppercase tracking-wide text-[var(--ink-muted)]">
+                <p className="text-sm font-semibold uppercase tracking-wide text-[var(--ink-muted)]">
                   {label}
                 </p>
                 <p className="mt-1.5 text-sm font-semibold break-all text-[var(--ink)]">{value}</p>
@@ -195,11 +205,11 @@ export default function MaterialDetailPage() {
             {job ? (
               <div className="mt-4 space-y-4">
                 <div className="sticky-note sticky-note--pink sticky-note--flat rounded-md p-4">
-                  <p className="text-xs font-semibold text-[var(--ink-muted)]">Job #{job.id}</p>
+                  <p className="text-sm font-semibold text-[var(--ink-muted)]">Job #{job.id}</p>
                   <GlassBadge tone="success" className="mt-2">
                     {job.status}
                   </GlassBadge>
-                  <p className="mt-2 text-xs text-[var(--ink-muted)]">
+                  <p className="mt-2 text-sm font-medium text-[var(--ink-muted)]">
                     Created {formatDate(job.created_at)}
                   </p>
                 </div>

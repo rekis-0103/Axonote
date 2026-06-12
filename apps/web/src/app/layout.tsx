@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import { Caveat, Nunito, Patrick_Hand } from "next/font/google";
 
 import { AuroraBackground } from "@/components/aurora-background";
 import { ScrollProgress } from "@/components/motion/scroll-progress";
@@ -7,24 +6,6 @@ import { PageTransition } from "@/components/motion/page-transition";
 import { ThemeProvider } from "@/components/theme/theme-provider";
 
 import "./globals.css";
-
-const fontHand = Caveat({
-  subsets: ["latin"],
-  variable: "--font-hand",
-  weight: ["500", "600", "700"],
-});
-
-const fontMarker = Patrick_Hand({
-  subsets: ["latin"],
-  variable: "--font-marker",
-  weight: "400",
-});
-
-const fontBody = Nunito({
-  subsets: ["latin"],
-  variable: "--font-body",
-  weight: ["400", "500", "600", "700"],
-});
 
 const themeNoFlashScript = `
 (function () {
@@ -54,7 +35,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${fontHand.variable} ${fontMarker.variable} ${fontBody.variable} h-full`}
+      className="h-full"
       suppressHydrationWarning
     >
       <head>

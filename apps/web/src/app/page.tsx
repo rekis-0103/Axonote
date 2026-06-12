@@ -50,6 +50,11 @@ export default function Home() {
   const [message, setMessage] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const googleButtonRef = useRef<HTMLDivElement>(null);
+  const isErrorMessage =
+    message.startsWith("Cannot reach") ||
+    message.includes("failed") ||
+    message.includes("invalid") ||
+    message.includes("required");
 
   const handleGoogleCredential = useCallback(async (response: GoogleCredentialResponse) => {
     setIsSubmitting(true);
@@ -293,7 +298,11 @@ export default function Home() {
               </div>
 
               {message ? (
-                <p className="mt-4 rounded-md bg-[var(--accent-muted)] px-3 py-2 text-sm font-medium text-[var(--ink)]">
+                <p
+                  className={`mt-4 px-3 py-2 text-sm font-semibold ${
+                    isErrorMessage ? "status-alert status-alert--danger" : "status-alert"
+                  }`}
+                >
                   {message}
                 </p>
               ) : null}

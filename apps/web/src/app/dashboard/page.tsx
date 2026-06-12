@@ -138,6 +138,8 @@ export default function DashboardPage() {
 
   const pending = materials.filter((m) => m.status === "pending").length;
   const ready = materials.filter((m) => m.status === "ready").length;
+  const isApiError = status.startsWith("Cannot reach");
+  const isUploadError = uploadStatus.includes("failed") || uploadStatus.startsWith("Cannot reach");
 
   return (
     <AppShell
@@ -150,6 +152,12 @@ export default function DashboardPage() {
       }
     >
       <div className="space-y-8">
+        {isApiError ? (
+          <div className="status-alert status-alert--danger px-4 py-3 text-sm font-semibold">
+            {status}
+          </div>
+        ) : null}
+
         <section className="grid gap-4 sm:grid-cols-3">
           <StatTile label="Materials" value={String(materials.length)} hint="Total uploads" color="yellow" />
           <StatTile label="Pending" value={String(pending)} hint="Awaiting analysis" color="pink" delay={0.05} />
@@ -181,7 +189,7 @@ export default function DashboardPage() {
                     >
                       <div className="min-w-0">
                         <p className="truncate text-base font-semibold text-[var(--ink)]">{item.title}</p>
-                        <p className="mt-0.5 truncate text-xs text-[var(--ink-muted)]">
+                        <p className="mt-1 truncate text-sm font-medium text-[var(--ink-muted)]">
                           {item.original_name} · {formatBytes(item.size_bytes)}
                         </p>
                       </div>
@@ -189,7 +197,7 @@ export default function DashboardPage() {
                         <GlassBadge tone={item.status === "ready" ? "success" : "default"}>
                           {item.status}
                         </GlassBadge>
-                        <p className="mt-1 text-xs text-[var(--ink-muted)]">
+                        <p className="mt-1 text-sm font-medium text-[var(--ink-muted)]">
                           {formatDate(item.created_at)}
                         </p>
                       </div>
@@ -224,7 +232,13 @@ export default function DashboardPage() {
                 </GlassButton>
               </form>
               {uploadStatus ? (
-                <p className="mt-3 text-xs font-medium text-[var(--ink-muted)]">{uploadStatus}</p>
+                <p
+                  className={`mt-4 px-3 py-2 text-sm font-semibold ${
+                    isUploadError ? "status-alert status-alert--danger" : "status-alert"
+                  }`}
+                >
+                  {uploadStatus}
+                </p>
               ) : null}
             </BentoCard>
           </div>
@@ -243,9 +257,9 @@ export default function DashboardPage() {
                     i === 1 ? "sticky-note--pink" : i === 2 ? "sticky-note--blue" : ""
                   }`}
                 >
-                  <span className="handwriting text-2xl font-bold text-[var(--ink-muted)]">{w.step}</span>
+                  <span className="handwriting text-2xl font-bold text-[var(--ink)]">{w.step}</span>
                   <p className="mt-2 text-base font-semibold text-[var(--ink)]">{w.title}</p>
-                  <p className="mt-1 text-sm text-[var(--ink-muted)]">{w.desc}</p>
+                  <p className="mt-1 text-sm font-medium text-[var(--ink-muted)]">{w.desc}</p>
                 </div>
               ))}
             </div>

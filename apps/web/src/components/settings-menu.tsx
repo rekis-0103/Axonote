@@ -36,6 +36,7 @@ export function SettingsMenu() {
             strokeLinejoin="round"
           />
         </svg>
+        <span className="hidden text-xs font-semibold lg:inline">Settings</span>
       </IconButton>
 
       {open ? (
