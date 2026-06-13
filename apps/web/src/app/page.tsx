@@ -6,7 +6,6 @@ import { GlassBadge } from "@/components/glass/glass-badge";
 import { GlassButton } from "@/components/glass/glass-button";
 import { GlassField } from "@/components/glass/glass-field";
 import { Segmented } from "@/components/glass/segmented";
-import { Navbar } from "@/components/shell/navbar";
 
 const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000/api/v1";
 const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ?? "";
@@ -27,6 +26,7 @@ type GoogleAccountsId = {
 declare global {
   interface Window {
     google?: { accounts: { id: GoogleAccountsId } };
+    __axonoteGoogleClientId?: string;
   }
 }
 
@@ -46,7 +46,6 @@ export default function Home() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [user, setUser] = useState<AuthUser | null>(null);
-  const [token, setToken] = useState("");
   const [message, setMessage] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const googleButtonRef = useRef<HTMLDivElement>(null);
@@ -55,6 +54,13 @@ export default function Home() {
     message.includes("failed") ||
     message.includes("invalid") ||
     message.includes("required");
+
+  useEffect(() => {
+    document.body.setAttribute("data-background", "cover");
+    return () => {
+      document.body.removeAttribute("data-background");
+    };
+  }, []);
 
   const handleGoogleCredential = useCallback(async (response: GoogleCredentialResponse) => {
     setIsSubmitting(true);
@@ -72,7 +78,6 @@ export default function Home() {
       }
       const authData = data as AuthResponse;
       setUser(authData.user);
-      setToken(authData.access_token);
       window.localStorage.setItem("axonote_token", authData.access_token);
       setMessage("Signed in with Google.");
       window.location.href = "/dashboard";
@@ -90,10 +95,13 @@ export default function Home() {
 
     function initGoogle() {
       if (cancelled || !window.google?.accounts?.id) return;
-      window.google.accounts.id.initialize({
-        client_id: googleClientId,
-        callback: handleGoogleCredential,
-      });
+      if (window.__axonoteGoogleClientId !== googleClientId) {
+        window.google.accounts.id.initialize({
+          client_id: googleClientId,
+          callback: handleGoogleCredential,
+        });
+        window.__axonoteGoogleClientId = googleClientId;
+      }
       container.replaceChildren();
       window.google.accounts.id.renderButton(container, {
         theme: "outline",
@@ -122,7 +130,7 @@ export default function Home() {
     return () => {
       cancelled = true;
     };
-  }, [handleGoogleCredential, mode]);
+  }, [handleGoogleCredential]);
 
   async function submitAuth(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -144,7 +152,6 @@ export default function Home() {
       }
       const authData = data as AuthResponse;
       setUser(authData.user);
-      setToken(authData.access_token);
       window.localStorage.setItem("axonote_token", authData.access_token);
       setMessage(mode === "login" ? "Signed in successfully." : "Account created.");
       window.location.href = "/dashboard";
@@ -155,42 +162,10 @@ export default function Home() {
     }
   }
 
-  async function loadProfile() {
-    const storedToken = token || window.localStorage.getItem("axonote_token");
-    if (!storedToken) {
-      setMessage("No active session. Sign in first.");
-      return;
-    }
-    try {
-      const response = await fetch(`${apiBaseUrl}/auth/me`, {
-        headers: { Authorization: `Bearer ${storedToken}` },
-      });
-      const data = await response.json();
-      if (!response.ok) {
-        setMessage(data.detail ?? "Session is invalid.");
-        return;
-      }
-      setToken(storedToken);
-      setUser(data as AuthUser);
-      setMessage("Session verified.");
-    } catch {
-      setMessage("Cannot reach the API. Make sure the backend is running.");
-    }
-  }
-
-  function logout() {
-    window.localStorage.removeItem("axonote_token");
-    setToken("");
-    setUser(null);
-    setMessage("Signed out.");
-  }
-
   return (
-    <div className="min-h-screen pt-20">
-      <Navbar showNav={false} />
-
-      <main className="mx-auto max-w-5xl px-4 pb-12 sm:px-6">
-        <div className="grid items-start gap-10 lg:grid-cols-2 lg:gap-14">
+    <div className="min-h-screen">
+      <main className="mx-auto flex min-h-screen max-w-5xl items-center px-4 py-12 sm:px-6">
+        <div className="grid w-full items-center gap-12 lg:grid-cols-2 lg:gap-16">
           {/* Cover */}
           <section className="pt-4 lg:pt-8">
             <GlassBadge tone="accent" className="mb-5">
@@ -202,13 +177,22 @@ export default function Home() {
               <span className="highlighter">summarized.</span>
             </h1>
             <p className="mt-5 max-w-md text-base font-medium leading-relaxed text-[var(--ink-muted)]">
-              Upload materials, get clear summaries, and practice with quiz questions — all in one
+              Upload materials, get clear summaries, and practice with quiz questions - all in one
               organized notebook.
             </p>
-            <ul className="mt-8 space-y-2 text-sm font-medium text-[var(--ink-muted)]">
-              <li>Private by default</li>
-              <li>ML-powered summaries</li>
-              <li>Quiz-ready practice</li>
+            <ul className="mt-8 space-y-3 text-sm font-medium text-[var(--ink-muted)]">
+              <li className="flex items-center gap-3">
+                <span className="h-2 w-2 rounded-full bg-[var(--accent-strong)]" />
+                Private by default
+              </li>
+              <li className="flex items-center gap-3">
+                <span className="h-2 w-2 rounded-full bg-[var(--accent-strong)]" />
+                Smart summaries
+              </li>
+              <li className="flex items-center gap-3">
+                <span className="h-2 w-2 rounded-full bg-[var(--accent-strong)]" />
+                Interactive practice
+              </li>
             </ul>
           </section>
 
@@ -287,15 +271,6 @@ export default function Home() {
                   />
                 </div>
               ) : null}
-
-              <div className="mt-5 flex gap-2 border-t border-dashed border-[var(--glass-border)] pt-5">
-                <GlassButton variant="glass" className="flex-1" onClick={loadProfile}>
-                  Verify session
-                </GlassButton>
-                <GlassButton variant="ghost" className="flex-1" onClick={logout}>
-                  Sign out
-                </GlassButton>
-              </div>
 
               {message ? (
                 <p

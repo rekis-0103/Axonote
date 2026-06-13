@@ -10,7 +10,7 @@ type GlassBadgeProps = {
 
 const TONE_CLASS: Record<string, string> = {
   default: "border border-dashed border-[var(--glass-border)] bg-transparent text-[var(--ink-muted)]",
-  accent: "sticky-note sticky-note--blue sticky-note--flat text-[var(--ink)]",
+  accent: "bg-[var(--accent-muted)] text-[var(--accent-strong)]",
   success: "sticky-note sticky-note--green sticky-note--flat text-[var(--ink)]",
 };
 

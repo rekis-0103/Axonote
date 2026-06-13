@@ -8,16 +8,19 @@ type AppShellProps = {
   title: string;
   subtitle?: string;
   trailing?: ReactNode;
+  background?: "desk" | "folder";
   children: ReactNode;
 };
 
-export function AppShell({ title, subtitle, trailing, children }: AppShellProps) {
+export function AppShell({ title, subtitle, trailing, background = "desk", children }: AppShellProps) {
   useEffect(() => {
     document.body.setAttribute("data-surface", "workspace");
+    document.body.setAttribute("data-background", background);
     return () => {
       document.body.removeAttribute("data-surface");
+      document.body.removeAttribute("data-background");
     };
-  }, []);
+  }, [background]);
 
   return (
     <div className="workspace-shell min-h-screen pt-20">

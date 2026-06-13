@@ -143,6 +143,7 @@ export default function DashboardPage() {
 
   return (
     <AppShell
+      background="desk"
       title={user ? `Hey, ${user.name.split(" ")[0]}` : "My Desk"}
       subtitle={status}
       trailing={
@@ -190,7 +191,7 @@ export default function DashboardPage() {
                       <div className="min-w-0">
                         <p className="truncate text-base font-semibold text-[var(--ink)]">{item.title}</p>
                         <p className="mt-1 truncate text-sm font-medium text-[var(--ink-muted)]">
-                          {item.original_name} · {formatBytes(item.size_bytes)}
+                          {item.original_name} | {formatBytes(item.size_bytes)}
                         </p>
                       </div>
                       <div className="shrink-0 text-right">
@@ -211,7 +212,7 @@ export default function DashboardPage() {
           <div>
             <BentoCard span={12} padding="1.5rem" revealDelay={0.1}>
               <h2 className="handwriting text-2xl font-bold">Quick upload</h2>
-              <p className="mt-1 text-sm font-medium text-[var(--ink-muted)]">PDF · DOCX · PPTX</p>
+              <p className="mt-1 text-sm font-medium text-[var(--ink-muted)]">PDF | DOCX | PPTX</p>
               <form className="mt-5 space-y-4" onSubmit={uploadMaterial}>
                 <GlassField
                   label="Title"

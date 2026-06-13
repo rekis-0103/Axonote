@@ -27,19 +27,17 @@ export function Navbar({ trailing, showNav = true }: NavbarProps) {
   const pathname = usePathname();
 
   return (
-    <header className="fixed left-1/2 top-4 z-50 w-[calc(100%-2rem)] max-w-4xl -translate-x-1/2">
-      <nav className="glass-rail flex items-center justify-between gap-3 px-3 py-2 sm:px-4 sm:py-2.5">
-        {/* Brand — always visible */}
+    <header className="fixed inset-x-0 top-0 z-50 border-b border-[var(--glass-border)] bg-white/95 shadow-sm backdrop-blur">
+      <nav className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
         <Link href="/" className="flex shrink-0 items-center gap-2 no-underline">
-          <span className="stamp text-xs leading-none">Ax</span>
-          <span className="handwriting text-xl font-bold leading-none text-[var(--ink)] sm:text-2xl">
+          <span className="stamp text-xs leading-none">AX</span>
+          <span className="text-base font-bold leading-none text-[var(--ink)] sm:text-lg">
             Axonote
           </span>
         </Link>
 
-        {/* Center nav */}
         {showNav ? (
-          <div className="flex flex-1 items-center justify-center gap-0.5 sm:gap-1">
+          <div className="flex flex-1 items-center justify-center gap-2">
             {NAV_ITEMS.map((item) => {
               const active = item.match ? item.match(pathname) : pathname === item.href;
               return (
@@ -47,14 +45,16 @@ export function Navbar({ trailing, showNav = true }: NavbarProps) {
                   key={item.label}
                   href={item.href}
                   className={`relative rounded-md px-2 py-1.5 text-xs font-semibold no-underline transition-colors sm:px-3 sm:text-sm ${
-                    active ? "text-[var(--ink)]" : "text-[var(--ink-muted)] hover:text-[var(--ink)]"
+                    active
+                      ? "text-[var(--accent-strong)]"
+                      : "text-[var(--ink-muted)] hover:text-[var(--ink)]"
                   }`}
                 >
                   {item.label}
                   {active ? (
                     <motion.span
                       layoutId="nav-ink"
-                      className="absolute bottom-0 left-1 right-1 h-0.5 rounded-full bg-[var(--accent)] sm:left-2 sm:right-2"
+                      className="absolute bottom-0 left-1 right-1 h-0.5 rounded-full bg-[var(--accent-strong)] sm:left-2 sm:right-2"
                     />
                   ) : null}
                 </Link>
@@ -65,7 +65,6 @@ export function Navbar({ trailing, showNav = true }: NavbarProps) {
           <div className="flex-1" />
         )}
 
-        {/* Right slot */}
         <div className="flex shrink-0 items-center gap-2">
           {trailing}
           <SettingsMenu />

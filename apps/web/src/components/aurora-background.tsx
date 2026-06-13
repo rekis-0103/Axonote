@@ -91,6 +91,18 @@ export function AuroraBackground() {
         }}
       />
 
+      <div className="aurora-cover-band" />
+      <div className="aurora-cover-label" />
+      <div className="aurora-binder-rings" />
+      <div className="aurora-page-tabs">
+        <span />
+        <span />
+        <span />
+      </div>
+      <div className="aurora-folder-tab" />
+      <div className="aurora-paper-stack aurora-paper-stack--one" />
+      <div className="aurora-paper-stack aurora-paper-stack--two" />
+
       {/* Parallax doodles */}
       {!reduceMotion ? (
         <>

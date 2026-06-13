@@ -38,8 +38,8 @@ export function GlassButton({
         style={{
           background: "var(--accent)",
           color: "var(--accent-ink)",
-          border: "2px solid var(--ink)",
-          boxShadow: "2px 3px 0 var(--paper-shadow)",
+          border: "0",
+          boxShadow: "0 10px 22px rgba(230, 111, 0, 0.22)",
         }}
         whileTap={disabled ? undefined : { scale: 0.98 }}
         transition={{ duration: 0.15 }}

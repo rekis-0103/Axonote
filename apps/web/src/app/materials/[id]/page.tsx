@@ -134,6 +134,7 @@ export default function MaterialDetailPage() {
 
   return (
     <AppShell
+      background="folder"
       title={material?.title ?? "Material"}
       subtitle={message}
       trailing={
