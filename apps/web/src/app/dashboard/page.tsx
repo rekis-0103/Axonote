@@ -2,11 +2,9 @@
 
 import { FormEvent, useEffect, useState } from "react";
 
-import { BentoCard } from "@/components/glass/bento-card";
 import { GlassBadge } from "@/components/glass/glass-badge";
 import { GlassButton } from "@/components/glass/glass-button";
 import { GlassField } from "@/components/glass/glass-field";
-import { StatTile } from "@/components/glass/stat-tile";
 import { AppShell } from "@/components/shell/app-shell";
 
 const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000/api/v1";
@@ -26,12 +24,6 @@ type MaterialItem = {
 };
 
 type MaterialListResponse = { items: MaterialItem[]; total: number };
-
-const WORKFLOW = [
-  { step: "1", title: "Upload", desc: "PDF, DOCX, or PPTX up to 20 MB." },
-  { step: "2", title: "Analyze", desc: "Worker extracts and summarizes content." },
-  { step: "3", title: "Practice", desc: "Quiz questions from your summaries." },
-];
 
 function formatBytes(bytes: number) {
   if (bytes < 1024) return `${bytes} B`;
@@ -159,112 +151,170 @@ export default function DashboardPage() {
           </div>
         ) : null}
 
-        <section className="grid gap-4 sm:grid-cols-3">
-          <StatTile label="Materials" value={String(materials.length)} hint="Total uploads" color="yellow" />
-          <StatTile label="Pending" value={String(pending)} hint="Awaiting analysis" color="pink" delay={0.05} />
-          <StatTile label="Ready" value={String(ready)} hint="Completed" color="green" delay={0.1} />
-        </section>
+        <section className="space-y-6">
+          <section className="glass-panel paper-grain overflow-hidden">
+            <div className="grid lg:grid-cols-[minmax(0,1fr)_18rem]">
+              <div className="p-6 sm:p-8">
+                <GlassBadge tone="accent">Study command center</GlassBadge>
+                <h2 className="mt-5 max-w-2xl text-4xl font-black leading-tight text-[var(--ink)] sm:text-5xl">
+                  Turn uploaded materials into a ready-to-study desk.
+                </h2>
+                <p className="mt-4 max-w-xl text-base font-semibold leading-relaxed text-[var(--ink-muted)]">
+                  Track every file, monitor analysis progress, and jump back into the next
+                  material from one workspace.
+                </p>
 
-        <section className="grid gap-6 lg:grid-cols-3">
-          <div className="lg:col-span-2">
-            <BentoCard span={12} padding="1.5rem" revealDelay={0.05}>
-              <div className="mb-5 flex items-center justify-between gap-3">
-                <div>
-                  <h2 className="handwriting text-2xl font-bold">Material library</h2>
-                  <p className="text-sm font-medium text-[var(--ink-muted)]">Your uploaded study files</p>
+                <div className="mt-8 grid gap-3 sm:grid-cols-3">
+                  <div className="rounded-2xl bg-[var(--sticky-yellow)] p-4 text-[var(--ink)] shadow-[var(--glass-shadow)]">
+                    <p className="text-xs font-bold uppercase tracking-wide text-[var(--ink-muted)]">
+                      Materials
+                    </p>
+                    <p className="mt-4 text-5xl font-black leading-none">{String(materials.length)}</p>
+                    <p className="mt-2 text-sm font-semibold text-[var(--ink-muted)]">Total uploads</p>
+                  </div>
+                  <div className="rounded-2xl bg-[var(--sticky-pink)] p-4 text-[var(--ink)] shadow-[var(--glass-shadow)]">
+                    <p className="text-xs font-bold uppercase tracking-wide text-[var(--ink-muted)]">
+                      Pending
+                    </p>
+                    <p className="mt-4 text-5xl font-black leading-none">{String(pending)}</p>
+                    <p className="mt-2 text-sm font-semibold text-[var(--ink-muted)]">Awaiting analysis</p>
+                  </div>
+                  <div className="rounded-2xl bg-[var(--sticky-green)] p-4 text-[var(--ink)] shadow-[var(--glass-shadow)]">
+                    <p className="text-xs font-bold uppercase tracking-wide text-[var(--ink-muted)]">
+                      Ready
+                    </p>
+                    <p className="mt-4 text-5xl font-black leading-none">{String(ready)}</p>
+                    <p className="mt-2 text-sm font-semibold text-[var(--ink-muted)]">Completed</p>
+                  </div>
                 </div>
-                <GlassBadge tone="accent">{materials.length} items</GlassBadge>
               </div>
 
-              {materials.length === 0 ? (
-                <div className="glass-surface rounded-md border border-dashed border-[var(--glass-border)] p-10 text-center text-sm text-[var(--ink-muted)]">
-                  No materials yet. Upload your first file using the panel on the right.
+              <aside className="border-t border-[var(--glass-border)] bg-white/70 p-6 lg:border-l lg:border-t-0">
+                <p className="text-xs font-bold uppercase tracking-wide text-[var(--ink-muted)]">
+                  Account
+                </p>
+                <p className="mt-2 truncate text-lg font-black text-[var(--ink)]">
+                  {user?.name ?? "Loading workspace"}
+                </p>
+                <p className="mt-1 truncate text-sm font-semibold text-[var(--ink-muted)]">
+                  {user?.email ?? "Checking account"}
+                </p>
+
+                <div className="mt-6 rounded-2xl border border-[var(--glass-border)] bg-white p-4">
+                  <p className="text-xs font-bold uppercase tracking-wide text-[var(--ink-muted)]">
+                    Session
+                  </p>
+                  <p className="mt-2 text-sm font-black text-[var(--ink)]">{status}</p>
                 </div>
-              ) : (
-                <div className="space-y-2">
-                  {materials.map((item) => (
-                    <a
-                      key={item.id}
-                      href={`/materials/${item.id}`}
-                      className="glass-surface flex items-center justify-between gap-4 rounded-md p-4 transition hover:bg-[var(--accent-muted)]"
-                    >
-                      <div className="min-w-0">
-                        <p className="truncate text-base font-semibold text-[var(--ink)]">{item.title}</p>
-                        <p className="mt-1 truncate text-sm font-medium text-[var(--ink-muted)]">
-                          {item.original_name} | {formatBytes(item.size_bytes)}
-                        </p>
-                      </div>
-                      <div className="shrink-0 text-right">
+              </aside>
+            </div>
+          </section>
+
+          <section className="glass-panel paper-grain p-6">
+            <div className="mb-5 flex flex-col justify-between gap-3 sm:flex-row sm:items-start">
+              <div>
+                <h2 className="text-2xl font-black text-[var(--ink)]">Upload document</h2>
+                <p className="mt-1 text-sm font-semibold text-[var(--ink-muted)]">PDF | DOCX | PPTX</p>
+              </div>
+              <GlassBadge tone="default">20 MB max</GlassBadge>
+            </div>
+
+            <form className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.25fr)_12rem] lg:items-end" onSubmit={uploadMaterial}>
+              <GlassField
+                label="Title"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+              />
+              <label className="block space-y-1.5">
+                <span className="block text-sm font-semibold text-[var(--ink)]">File</span>
+                <input
+                  type="file"
+                  accept=".pdf,.docx,.pptx"
+                  onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+                  className="glass-surface w-full rounded-md px-3 py-2.5 text-sm file:mr-3 file:rounded-md file:border-0 file:bg-[var(--accent-muted)] file:px-3 file:py-1 file:text-xs file:font-semibold file:text-[var(--ink)]"
+                />
+              </label>
+              <GlassButton type="submit" variant="solid" fullWidth disabled={isUploading}>
+                {isUploading ? "Uploading..." : "Upload"}
+              </GlassButton>
+            </form>
+
+            {uploadStatus ? (
+              <p
+                className={`mt-4 px-3 py-2 text-sm font-semibold ${
+                  isUploadError ? "status-alert status-alert--danger" : "status-alert"
+                }`}
+              >
+                {uploadStatus}
+              </p>
+            ) : null}
+          </section>
+
+          <section className="glass-panel paper-grain p-6">
+            <div className="mb-6 flex flex-col justify-between gap-4 lg:flex-row lg:items-end">
+              <div>
+                <h2 className="text-3xl font-black text-[var(--ink)]">Material workspace</h2>
+                <p className="mt-1 text-sm font-semibold text-[var(--ink-muted)]">
+                  Open a file to review generated summaries and practice questions.
+                </p>
+              </div>
+              <label className="block w-full max-w-xs space-y-1.5">
+                <span className="block text-xs font-bold uppercase tracking-wide text-[var(--ink-muted)]">
+                  Library filters
+                </span>
+                <select
+                  aria-label="Library filters"
+                  defaultValue="all"
+                  className="glass-surface w-full rounded-md px-3 py-2.5 text-sm font-semibold text-[var(--ink)]"
+                >
+                  <option value="all">All files ({materials.length})</option>
+                  <option value="waiting">Waiting ({pending})</option>
+                  <option value="ready">Study-ready ({ready})</option>
+                </select>
+              </label>
+            </div>
+
+            {materials.length === 0 ? (
+              <div className="grid min-h-72 place-items-center rounded-3xl border border-dashed border-[var(--glass-border)] bg-white/70 p-8 text-center">
+                <div>
+                  <p className="text-xl font-black text-[var(--ink)]">No materials on the desk yet.</p>
+                  <p className="mt-2 max-w-md text-sm font-semibold text-[var(--ink-muted)]">
+                    Use the upload document card to add your first PDF, DOCX, or PPTX file.
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <div className="grid gap-3">
+                {materials.map((item) => (
+                  <a
+                    key={item.id}
+                    href={`/materials/${item.id}`}
+                    className="group grid gap-4 rounded-2xl border border-[var(--glass-border)] bg-white/80 p-4 text-[var(--ink)] transition hover:-translate-y-0.5 hover:bg-[var(--accent-muted)] hover:shadow-[var(--glass-shadow)] sm:grid-cols-[minmax(0,1fr)_auto]"
+                  >
+                    <div className="min-w-0">
+                      <p className="truncate text-lg font-black">{item.title}</p>
+                      <p className="mt-1 truncate text-sm font-semibold text-[var(--ink-muted)]">
+                        {item.original_name} | {formatBytes(item.size_bytes)}
+                      </p>
+                    </div>
+                    <div className="flex items-center justify-between gap-4 sm:justify-end sm:text-right">
+                      <div>
                         <GlassBadge tone={item.status === "ready" ? "success" : "default"}>
                           {item.status}
                         </GlassBadge>
-                        <p className="mt-1 text-sm font-medium text-[var(--ink-muted)]">
+                        <p className="mt-1 text-xs font-semibold text-[var(--ink-muted)]">
                           {formatDate(item.created_at)}
                         </p>
                       </div>
-                    </a>
-                  ))}
-                </div>
-              )}
-            </BentoCard>
-          </div>
-
-          <div>
-            <BentoCard span={12} padding="1.5rem" revealDelay={0.1}>
-              <h2 className="handwriting text-2xl font-bold">Quick upload</h2>
-              <p className="mt-1 text-sm font-medium text-[var(--ink-muted)]">PDF | DOCX | PPTX</p>
-              <form className="mt-5 space-y-4" onSubmit={uploadMaterial}>
-                <GlassField
-                  label="Title"
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                />
-                <label className="block space-y-1.5">
-                  <span className="block text-sm font-semibold text-[var(--ink)]">File</span>
-                  <input
-                    type="file"
-                    accept=".pdf,.docx,.pptx"
-                    onChange={(e) => setFile(e.target.files?.[0] ?? null)}
-                    className="glass-surface w-full rounded-md px-3 py-2.5 text-sm file:mr-3 file:rounded-md file:border-0 file:bg-[var(--accent-muted)] file:px-3 file:py-1 file:text-xs file:font-semibold file:text-[var(--ink)]"
-                  />
-                </label>
-                <GlassButton type="submit" variant="solid" fullWidth disabled={isUploading}>
-                  {isUploading ? "Uploading..." : "Upload"}
-                </GlassButton>
-              </form>
-              {uploadStatus ? (
-                <p
-                  className={`mt-4 px-3 py-2 text-sm font-semibold ${
-                    isUploadError ? "status-alert status-alert--danger" : "status-alert"
-                  }`}
-                >
-                  {uploadStatus}
-                </p>
-              ) : null}
-            </BentoCard>
-          </div>
-        </section>
-
-        <section>
-          <BentoCard span={12} padding="1.5rem" revealDelay={0.15}>
-            <h2 className="mb-5 text-sm font-semibold uppercase tracking-wide text-[var(--ink-muted)]">
-              How it works
-            </h2>
-            <div className="grid gap-4 sm:grid-cols-3">
-              {WORKFLOW.map((w, i) => (
-                <div
-                  key={w.step}
-                  className={`sticky-note sticky-note--flat p-5 ${
-                    i === 1 ? "sticky-note--pink" : i === 2 ? "sticky-note--blue" : ""
-                  }`}
-                >
-                  <span className="handwriting text-2xl font-bold text-[var(--ink)]">{w.step}</span>
-                  <p className="mt-2 text-base font-semibold text-[var(--ink)]">{w.title}</p>
-                  <p className="mt-1 text-sm font-medium text-[var(--ink-muted)]">{w.desc}</p>
-                </div>
-              ))}
-            </div>
-          </BentoCard>
+                      <span className="rounded-full bg-white px-3 py-1 text-sm font-black text-[var(--accent-strong)] transition group-hover:bg-[var(--accent)] group-hover:text-[var(--accent-ink)]">
+                        Open
+                      </span>
+                    </div>
+                  </a>
+                ))}
+              </div>
+            )}
+          </section>
         </section>
       </div>
     </AppShell>
