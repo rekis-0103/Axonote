@@ -39,8 +39,78 @@ class GoogleLoginRequest(BaseModel):
 
 class TokenResponse(BaseModel):
     access_token: str
+    refresh_token: str | None = None
     token_type: str = "bearer"
     user: UserRead
+
+
+class RefreshTokenRequest(BaseModel):
+    refresh_token: str = Field(min_length=10)
+
+
+class RefreshTokenResponse(BaseModel):
+    access_token: str
+    refresh_token: str
+    token_type: str = "bearer"
+
+
+class LogoutRequest(BaseModel):
+    refresh_token: str = Field(min_length=10)
+
+
+class SummaryRead(BaseModel):
+    material_id: int
+    content: str
+    keywords: list[str]
+    created_at: datetime
+
+
+class QuestionPublic(BaseModel):
+    id: int
+    type: str
+    stem: str
+    options: list[str]
+
+
+class QuestionSetRead(BaseModel):
+    question_set_id: int
+    questions: list[QuestionPublic]
+
+
+class AttemptAnswerInput(BaseModel):
+    question_id: int
+    chosen_index: int = Field(ge=0)
+
+
+class AttemptSubmitRequest(BaseModel):
+    answers: list[AttemptAnswerInput]
+
+
+class AttemptResultItem(BaseModel):
+    question_id: int
+    chosen_index: int
+    correct_index: int
+    is_correct: bool
+    explanation: str | None = None
+
+
+class AttemptSubmitResponse(BaseModel):
+    attempt_id: int
+    score: int
+    total: int
+    results: list[AttemptResultItem]
+
+
+class AttemptHistoryItem(BaseModel):
+    attempt_id: int
+    score: int
+    total: int
+    started_at: datetime
+    finished_at: datetime | None = None
+
+
+class AttemptHistoryResponse(BaseModel):
+    items: list[AttemptHistoryItem]
 
 
 class MaterialRead(BaseModel):

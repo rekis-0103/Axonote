@@ -27,7 +27,7 @@ export function Navbar({ trailing, showNav = true }: NavbarProps) {
   const pathname = usePathname();
 
   return (
-    <header className="fixed inset-x-0 top-0 z-50 border-b border-[var(--glass-border)] bg-white/95 shadow-sm backdrop-blur">
+    <header className="fixed inset-x-0 top-0 z-50 border-b border-[var(--glass-border)] bg-[var(--paper)]/95 shadow-sm backdrop-blur">
       <nav className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
         <Link href="/" className="flex shrink-0 items-center gap-2 no-underline">
           <span className="stamp text-xs leading-none">AX</span>

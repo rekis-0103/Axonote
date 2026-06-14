@@ -2,15 +2,23 @@ from pathlib import Path
 from typing import Annotated
 from uuid import uuid4
 
-from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile, status
 from sqlalchemy import desc, func, select
 from sqlalchemy.orm import Session
 
 from app.auth import get_current_user
 from app.config import get_settings
 from app.db import get_db
-from app.models import Job, Material, User
-from app.schemas import JobRead, MaterialListResponse, MaterialRead
+from app.models import Job, Material, Question, QuestionSet, Summary, User
+from app.rate_limit import limit_analyze, limit_upload
+from app.schemas import (
+    JobRead,
+    MaterialListResponse,
+    MaterialRead,
+    QuestionPublic,
+    QuestionSetRead,
+    SummaryRead,
+)
 
 router = APIRouter(prefix="/api/v1/materials", tags=["materials"])
 DbSession = Annotated[Session, Depends(get_db)]
@@ -84,13 +92,25 @@ def _get_owned_material(material_id: int, current_user: User, db: Session) -> Ma
     return material
 
 
+def _json_list(value: object | None) -> list[str]:
+    if value is None:
+        return []
+    if isinstance(value, list):
+        return [str(item) for item in value]
+    if isinstance(value, dict) and "items" in value and isinstance(value["items"], list):
+        return [str(item) for item in value["items"]]
+    return []
+
+
 @router.post("", response_model=MaterialRead, status_code=status.HTTP_201_CREATED)
 async def upload_material(
+    request: Request,
     current_user: CurrentUser,
     db: DbSession,
     file: UploadFileField,
     title: TitleFormField = None,
 ) -> MaterialRead:
+    limit_upload(request)
     settings = get_settings()
     original_name = _clean_filename(file.filename)
     extension = _extension(original_name)
@@ -161,8 +181,87 @@ def get_material(material_id: int, current_user: CurrentUser, db: DbSession) -> 
     return _material_read(_get_owned_material(material_id, current_user, db))
 
 
+@router.get("/{material_id}/jobs/latest", response_model=JobRead)
+def get_latest_material_job(
+    material_id: int,
+    current_user: CurrentUser,
+    db: DbSession,
+) -> JobRead:
+    material = _get_owned_material(material_id, current_user, db)
+    job = db.scalar(
+        select(Job)
+        .where(Job.material_id == material.id, Job.type == "analyze")
+        .order_by(desc(Job.created_at), desc(Job.id))
+    )
+    if job is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No analysis job found.")
+    return _job_read(job)
+
+
+@router.get("/{material_id}/summary", response_model=SummaryRead)
+def get_material_summary(material_id: int, current_user: CurrentUser, db: DbSession) -> SummaryRead:
+    material = _get_owned_material(material_id, current_user, db)
+    if material.status != "ready":
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Summary not available.")
+
+    summary = db.scalar(select(Summary).where(Summary.material_id == material.id))
+    if summary is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Summary not available.")
+
+    return SummaryRead(
+        material_id=material.id,
+        content=summary.content,
+        keywords=_json_list(summary.keywords),
+        created_at=summary.created_at,
+    )
+
+
+@router.get("/{material_id}/question-set", response_model=QuestionSetRead)
+def get_material_question_set(
+    material_id: int,
+    current_user: CurrentUser,
+    db: DbSession,
+) -> QuestionSetRead:
+    material = _get_owned_material(material_id, current_user, db)
+    if material.status != "ready":
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Question set not available.",
+        )
+
+    question_set = db.scalar(select(QuestionSet).where(QuestionSet.material_id == material.id))
+    if question_set is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Question set not available.",
+        )
+
+    questions = db.scalars(
+        select(Question).where(Question.question_set_id == question_set.id)
+    ).all()
+
+    return QuestionSetRead(
+        question_set_id=question_set.id,
+        questions=[
+            QuestionPublic(
+                id=question.id,
+                type=question.type,
+                stem=question.stem,
+                options=_json_list(question.options),
+            )
+            for question in questions
+        ],
+    )
+
+
 @router.post("/{material_id}/analyze", response_model=JobRead, status_code=status.HTTP_202_ACCEPTED)
-def analyze_material(material_id: int, current_user: CurrentUser, db: DbSession) -> JobRead:
+def analyze_material(
+    material_id: int,
+    request: Request,
+    current_user: CurrentUser,
+    db: DbSession,
+) -> JobRead:
+    limit_analyze(request)
     material = _get_owned_material(material_id, current_user, db)
     existing_job = db.scalar(
         select(Job)

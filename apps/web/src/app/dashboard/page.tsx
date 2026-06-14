@@ -6,8 +6,7 @@ import { GlassBadge } from "@/components/glass/glass-badge";
 import { GlassButton } from "@/components/glass/glass-button";
 import { GlassField } from "@/components/glass/glass-field";
 import { AppShell } from "@/components/shell/app-shell";
-
-const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000/api/v1";
+import { apiFetch, logoutSession } from "@/lib/api-client";
 
 type AuthUser = { id: number; name: string; email: string };
 
@@ -48,10 +47,8 @@ export default function DashboardPage() {
   const [file, setFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
 
-  async function loadMaterials(token: string) {
-    const response = await fetch(`${apiBaseUrl}/materials`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
+  async function loadMaterials() {
+    const response = await apiFetch("/materials");
     const data = await response.json();
     if (!response.ok) throw new Error(data.detail ?? "Unable to load materials.");
     setMaterials((data as MaterialListResponse).items);
@@ -63,20 +60,16 @@ export default function DashboardPage() {
       window.location.href = "/";
       return;
     }
-    const authToken = token;
     async function loadWorkspace() {
       try {
-        const response = await fetch(`${apiBaseUrl}/auth/me`, {
-          headers: { Authorization: `Bearer ${authToken}` },
-        });
+        const response = await apiFetch("/auth/me");
         const data = await response.json();
         if (!response.ok) {
-          window.localStorage.removeItem("axonote_token");
           window.location.href = "/";
           return;
         }
         setUser(data as AuthUser);
-        await loadMaterials(authToken);
+        await loadMaterials();
         setStatus("Workspace ready");
       } catch {
         setStatus("Cannot reach the API. Make sure the backend is running.");
@@ -102,9 +95,8 @@ export default function DashboardPage() {
     setIsUploading(true);
     setUploadStatus("Uploading...");
     try {
-      const response = await fetch(`${apiBaseUrl}/materials`, {
+      const response = await apiFetch("/materials", {
         method: "POST",
-        headers: { Authorization: `Bearer ${token}` },
         body: formData,
       });
       const data = await response.json();
@@ -115,7 +107,7 @@ export default function DashboardPage() {
       setTitle("");
       setFile(null);
       setUploadStatus("Material uploaded.");
-      await loadMaterials(token);
+      await loadMaterials();
     } catch {
       setUploadStatus("Cannot reach the API. Make sure the backend is running.");
     } finally {
@@ -123,8 +115,8 @@ export default function DashboardPage() {
     }
   }
 
-  function logout() {
-    window.localStorage.removeItem("axonote_token");
+  async function logout() {
+    await logoutSession();
     window.location.href = "/";
   }
 
@@ -165,31 +157,31 @@ export default function DashboardPage() {
                 </p>
 
                 <div className="mt-8 grid gap-3 sm:grid-cols-3">
-                  <div className="rounded-2xl bg-[var(--sticky-yellow)] p-4 text-[var(--ink)] shadow-[var(--glass-shadow)]">
-                    <p className="text-xs font-bold uppercase tracking-wide text-[var(--ink-muted)]">
+                  <div className="rounded-2xl bg-[var(--sticky-yellow)] p-4 text-[var(--accent-ink)] shadow-[var(--glass-shadow)]">
+                    <p className="text-xs font-bold uppercase tracking-wide text-[var(--accent-ink)] opacity-70">
                       Materials
                     </p>
                     <p className="mt-4 text-5xl font-black leading-none">{String(materials.length)}</p>
-                    <p className="mt-2 text-sm font-semibold text-[var(--ink-muted)]">Total uploads</p>
+                    <p className="mt-2 text-sm font-semibold text-[var(--accent-ink)] opacity-70">Total uploads</p>
                   </div>
-                  <div className="rounded-2xl bg-[var(--sticky-pink)] p-4 text-[var(--ink)] shadow-[var(--glass-shadow)]">
-                    <p className="text-xs font-bold uppercase tracking-wide text-[var(--ink-muted)]">
+                  <div className="rounded-2xl bg-[var(--sticky-pink)] p-4 text-[var(--accent-ink)] shadow-[var(--glass-shadow)]">
+                    <p className="text-xs font-bold uppercase tracking-wide text-[var(--accent-ink)] opacity-70">
                       Pending
                     </p>
                     <p className="mt-4 text-5xl font-black leading-none">{String(pending)}</p>
-                    <p className="mt-2 text-sm font-semibold text-[var(--ink-muted)]">Awaiting analysis</p>
+                    <p className="mt-2 text-sm font-semibold text-[var(--accent-ink)] opacity-70">Awaiting analysis</p>
                   </div>
-                  <div className="rounded-2xl bg-[var(--sticky-green)] p-4 text-[var(--ink)] shadow-[var(--glass-shadow)]">
-                    <p className="text-xs font-bold uppercase tracking-wide text-[var(--ink-muted)]">
+                  <div className="rounded-2xl bg-[var(--sticky-green)] p-4 text-[var(--accent-ink)] shadow-[var(--glass-shadow)]">
+                    <p className="text-xs font-bold uppercase tracking-wide text-[var(--accent-ink)] opacity-70">
                       Ready
                     </p>
                     <p className="mt-4 text-5xl font-black leading-none">{String(ready)}</p>
-                    <p className="mt-2 text-sm font-semibold text-[var(--ink-muted)]">Completed</p>
+                    <p className="mt-2 text-sm font-semibold text-[var(--accent-ink)] opacity-70">Completed</p>
                   </div>
                 </div>
               </div>
 
-              <aside className="border-t border-[var(--glass-border)] bg-white/70 p-6 lg:border-l lg:border-t-0">
+              <aside className="surface-overlay border-t border-[var(--glass-border)] p-6 lg:border-l lg:border-t-0">
                 <p className="text-xs font-bold uppercase tracking-wide text-[var(--ink-muted)]">
                   Account
                 </p>
@@ -200,7 +192,7 @@ export default function DashboardPage() {
                   {user?.email ?? "Checking account"}
                 </p>
 
-                <div className="mt-6 rounded-2xl border border-[var(--glass-border)] bg-white p-4">
+                <div className="mt-6 rounded-2xl border border-[var(--glass-border)] bg-[var(--paper)] p-4">
                   <p className="text-xs font-bold uppercase tracking-wide text-[var(--ink-muted)]">
                     Session
                   </p>
@@ -275,7 +267,7 @@ export default function DashboardPage() {
             </div>
 
             {materials.length === 0 ? (
-              <div className="grid min-h-72 place-items-center rounded-3xl border border-dashed border-[var(--glass-border)] bg-white/70 p-8 text-center">
+              <div className="surface-overlay grid min-h-72 place-items-center rounded-3xl border border-dashed border-[var(--glass-border)] p-8 text-center">
                 <div>
                   <p className="text-xl font-black text-[var(--ink)]">No materials on the desk yet.</p>
                   <p className="mt-2 max-w-md text-sm font-semibold text-[var(--ink-muted)]">
@@ -289,7 +281,7 @@ export default function DashboardPage() {
                   <a
                     key={item.id}
                     href={`/materials/${item.id}`}
-                    className="group grid gap-4 rounded-2xl border border-[var(--glass-border)] bg-white/80 p-4 text-[var(--ink)] transition hover:-translate-y-0.5 hover:bg-[var(--accent-muted)] hover:shadow-[var(--glass-shadow)] sm:grid-cols-[minmax(0,1fr)_auto]"
+                    className="group surface-overlay grid gap-4 rounded-2xl border border-[var(--glass-border)] p-4 text-[var(--ink)] transition hover:-translate-y-0.5 hover:bg-[var(--accent-muted)] hover:shadow-[var(--glass-shadow)] sm:grid-cols-[minmax(0,1fr)_auto]"
                   >
                     <div className="min-w-0">
                       <p className="truncate text-lg font-black">{item.title}</p>
@@ -306,7 +298,7 @@ export default function DashboardPage() {
                           {formatDate(item.created_at)}
                         </p>
                       </div>
-                      <span className="rounded-full bg-white px-3 py-1 text-sm font-black text-[var(--accent-strong)] transition group-hover:bg-[var(--accent)] group-hover:text-[var(--accent-ink)]">
+                      <span className="rounded-full bg-[var(--paper)] px-3 py-1 text-sm font-black text-[var(--accent-strong)] transition group-hover:bg-[var(--accent)] group-hover:text-[var(--accent-ink)]">
                         Open
                       </span>
                     </div>

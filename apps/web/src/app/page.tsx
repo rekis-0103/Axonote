@@ -6,6 +6,7 @@ import { GlassBadge } from "@/components/glass/glass-badge";
 import { GlassButton } from "@/components/glass/glass-button";
 import { GlassField } from "@/components/glass/glass-field";
 import { Segmented } from "@/components/glass/segmented";
+import { storeAuthSession } from "@/lib/api-client";
 
 const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000/api/v1";
 const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ?? "";
@@ -36,6 +37,7 @@ type AuthUser = { id: number; name: string; email: string };
 
 type AuthResponse = {
   access_token: string;
+  refresh_token?: string;
   token_type: string;
   user: AuthUser;
 };
@@ -78,7 +80,7 @@ export default function Home() {
       }
       const authData = data as AuthResponse;
       setUser(authData.user);
-      window.localStorage.setItem("axonote_token", authData.access_token);
+      storeAuthSession(authData.access_token, authData.refresh_token);
       setMessage("Signed in with Google.");
       window.location.href = "/dashboard";
     } catch {
@@ -152,7 +154,7 @@ export default function Home() {
       }
       const authData = data as AuthResponse;
       setUser(authData.user);
-      window.localStorage.setItem("axonote_token", authData.access_token);
+      storeAuthSession(authData.access_token, authData.refresh_token);
       setMessage(mode === "login" ? "Signed in successfully." : "Account created.");
       window.location.href = "/dashboard";
     } catch {

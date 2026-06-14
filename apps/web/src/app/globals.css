@@ -636,6 +636,9 @@ body[data-surface="workspace"] .paper-grain::before {
   --glass-border: #d7dfec;
   --glass-shadow: 0 14px 34px rgba(61, 42, 17, 0.11);
   --glass-shadow-lg: 0 22px 48px rgba(61, 42, 17, 0.16);
+  --surface-overlay: rgba(255, 255, 255, 0.88);
+  --status-info-bg: #fff7ed;
+  --aurora-wash: #f3e7cf;
 }
 
 [data-theme="dark"] {
@@ -654,13 +657,25 @@ body[data-surface="workspace"] .paper-grain::before {
   --sticky-pink: #e85a8d;
   --sticky-green: #70bd71;
   --glass-border: rgba(203, 213, 225, 0.2);
+  --glass-shadow: 0 14px 34px rgba(0, 0, 0, 0.28);
+  --glass-shadow-lg: 0 22px 48px rgba(0, 0, 0, 0.36);
+  --surface-overlay: rgba(31, 41, 55, 0.92);
+  --status-info-bg: rgba(31, 41, 55, 0.95);
+  --aurora-wash: #172033;
 }
 
 body {
   background:
     radial-gradient(circle at 78% 18%, rgba(255, 187, 80, 0.28), transparent 28rem),
     radial-gradient(circle at 12% 84%, rgba(186, 132, 65, 0.16), transparent 28rem),
-    #f3e7cf;
+    var(--bg-base);
+}
+
+[data-theme="dark"] body {
+  background:
+    radial-gradient(circle at 78% 18%, rgba(255, 183, 0, 0.1), transparent 28rem),
+    radial-gradient(circle at 12% 84%, rgba(100, 80, 40, 0.12), transparent 28rem),
+    var(--bg-base);
 }
 
 .handwriting,
@@ -701,7 +716,7 @@ body {
       transparent 1px,
       transparent 4px
     ),
-    #f3e7cf !important;
+    var(--aurora-wash) !important;
 }
 
 .aurora-paper::before,
@@ -733,7 +748,18 @@ body[data-background="desk"] .aurora-paper {
     linear-gradient(154deg, transparent 0 45%, rgba(214, 145, 55, 0.1) 45% 55%, transparent 55%),
     radial-gradient(circle at 12% 86%, rgba(224, 139, 48, 0.22), transparent 18rem),
     radial-gradient(circle at 90% 18%, rgba(255, 183, 0, 0.18), transparent 24rem),
-    #f3e7cf !important;
+    var(--aurora-wash) !important;
+}
+
+[data-theme="dark"] body[data-background="desk"] .aurora-paper {
+  background:
+    radial-gradient(ellipse at 54% 20%, rgba(255, 183, 0, 0.08), transparent 22rem),
+    radial-gradient(ellipse at 44% 28%, rgba(255, 183, 0, 0.05), transparent 12rem),
+    linear-gradient(26deg, transparent 0 46%, rgba(255, 183, 0, 0.06) 46% 56%, transparent 56%),
+    linear-gradient(154deg, transparent 0 45%, rgba(255, 183, 0, 0.05) 45% 55%, transparent 55%),
+    radial-gradient(circle at 12% 86%, rgba(255, 183, 0, 0.08), transparent 18rem),
+    radial-gradient(circle at 90% 18%, rgba(255, 183, 0, 0.1), transparent 24rem),
+    var(--aurora-wash) !important;
 }
 
 body[data-background="folder"] .aurora-paper {
@@ -741,22 +767,31 @@ body[data-background="folder"] .aurora-paper {
     linear-gradient(135deg, rgba(255, 179, 0, 0.16), transparent 32%),
     radial-gradient(circle at 80% 24%, rgba(255, 183, 0, 0.2), transparent 22rem),
     radial-gradient(circle at 18% 82%, rgba(175, 107, 36, 0.18), transparent 22rem),
-    #f3e7cf !important;
+    var(--aurora-wash) !important;
+}
+
+[data-theme="dark"] body[data-background="folder"] .aurora-paper {
+  background:
+    linear-gradient(135deg, rgba(255, 179, 0, 0.1), transparent 32%),
+    radial-gradient(circle at 80% 24%, rgba(255, 183, 0, 0.12), transparent 22rem),
+    radial-gradient(circle at 18% 82%, rgba(255, 183, 0, 0.08), transparent 22rem),
+    var(--aurora-wash) !important;
 }
 
 .aurora-doodle {
-  color: rgba(17, 24, 39, 0.2) !important;
-  opacity: 0.18 !important;
+  color: var(--ink-muted) !important;
+  opacity: 0.22 !important;
 }
 
 .glass-panel,
 .glass-surface,
 .glass-rail,
 .paper-card {
-  background: rgba(255, 255, 255, 0.94);
+  background: var(--paper);
   border: 1px solid var(--glass-border);
   border-radius: 16px;
   box-shadow: var(--glass-shadow);
+  color: var(--ink);
 }
 
 .glass-panel::before,
@@ -796,7 +831,7 @@ body[data-background="folder"] .aurora-paper {
   border: 0;
   border-radius: 8px;
   background: var(--ink);
-  color: white;
+  color: var(--accent-ink);
   padding: 0;
   font-family: var(--font-body), system-ui, sans-serif;
   font-weight: 800;
@@ -835,6 +870,12 @@ body[data-background="folder"] .aurora-paper {
 
 .status-alert {
   border-color: var(--glass-border);
-  background: #fff7ed;
+  background: var(--status-info-bg);
+  color: var(--ink);
   box-shadow: none;
+}
+
+.surface-overlay {
+  background: var(--surface-overlay);
+  color: var(--ink);
 }

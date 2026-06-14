@@ -22,6 +22,7 @@ class Settings(BaseSettings):
     database_url: str = "sqlite:///:memory:"
     jwt_secret: str = "change-me-in-production"
     access_token_expire_minutes: int = 15
+    refresh_token_expire_days: int = 7
     google_client_id: str = ""
     google_clock_skew_seconds: int = 120
     upload_dir: str = "uploads"

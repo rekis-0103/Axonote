@@ -24,25 +24,33 @@ def _b64url_decode(data: str) -> bytes:
 
 
 def hash_password(password: str) -> str:
-    salt = secrets.token_bytes(16)
-    digest = hashlib.pbkdf2_hmac("sha256", password.encode("utf-8"), salt, 210_000)
-    return f"pbkdf2_sha256${_b64url_encode(salt)}${_b64url_encode(digest)}"
+    from argon2 import PasswordHasher
+
+    return PasswordHasher().hash(password)
 
 
 def verify_password(password: str, password_hash: str | None) -> bool:
     if password_hash is None:
         return False
-    try:
-        algorithm, salt_value, digest_value = password_hash.split("$", maxsplit=2)
-    except ValueError:
-        return False
-    if algorithm != "pbkdf2_sha256":
-        return False
 
-    salt = _b64url_decode(salt_value)
-    expected = _b64url_decode(digest_value)
-    actual = hashlib.pbkdf2_hmac("sha256", password.encode("utf-8"), salt, 210_000)
-    return hmac.compare_digest(actual, expected)
+    if password_hash.startswith("pbkdf2_sha256$"):
+        try:
+            _, salt_value, digest_value = password_hash.split("$", maxsplit=2)
+        except ValueError:
+            return False
+        salt = _b64url_decode(salt_value)
+        expected = _b64url_decode(digest_value)
+        actual = hashlib.pbkdf2_hmac("sha256", password.encode("utf-8"), salt, 210_000)
+        return hmac.compare_digest(actual, expected)
+
+    from argon2 import PasswordHasher
+    from argon2.exceptions import VerifyMismatchError
+
+    try:
+        PasswordHasher().verify(password_hash, password)
+        return True
+    except VerifyMismatchError:
+        return False
 
 
 def create_access_token(subject: str) -> str:
@@ -93,6 +101,19 @@ def verify_access_token(token: str) -> str:
     if expires_at < int(datetime.now(timezone.utc).timestamp()):
         raise credentials_error
     return subject
+
+
+def create_refresh_token_value() -> str:
+    return secrets.token_urlsafe(32)
+
+
+def hash_refresh_token(token: str) -> str:
+    return hashlib.sha256(token.encode("utf-8")).hexdigest()
+
+
+def refresh_token_expiry() -> datetime:
+    settings = get_settings()
+    return datetime.now(timezone.utc) + timedelta(days=settings.refresh_token_expire_days)
 
 
 def verify_google_id_token(credential: str) -> dict[str, str]:
