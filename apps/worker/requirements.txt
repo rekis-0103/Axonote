@@ -9,4 +9,4 @@ networkx>=3.2
 
 # dev / test
 pytest==9.0.3
-ruff==0.15.16
+ruff==0.15.17
