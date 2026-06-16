@@ -9,7 +9,7 @@ python-dotenv>=1.2.2
 sqlalchemy>=2.0
 pymysql>=1.1
 python-multipart>=0.0.20
-google-auth>=2.34
+google-auth>=2.55.0
 requests>=2.31
 argon2-cffi>=23.1
 
