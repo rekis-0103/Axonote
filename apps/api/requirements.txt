@@ -11,7 +11,7 @@ pymysql>=1.1
 python-multipart>=0.0.20
 google-auth>=2.34
 requests>=2.31
-argon2-cffi>=23.1
+argon2-cffi>=25.1.0
 
 # dev / test
 pytest>=8.3
